@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 — 취업 지원 관리</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+:root{--bg:#0d1117;--surface:#161b22;--surface2:#21262d;--surface3:#30363d;--border:#30363d;--border2:#484f58;--accent:#2563eb;--accent2:#3b82f6;--accent-glow:rgba(37,99,235,.15);--green:#16a34a;--green-bg:rgba(22,163,74,.1);--yellow:#d97706;--yellow-bg:rgba(217,119,6,.1);--red:#dc2626;--red-bg:rgba(220,38,38,.1);--purple:#7c3aed;--purple-bg:rgba(124,58,237,.1);--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;--mono:'IBM Plex Mono',monospace;--sans:'Noto Sans KR',sans-serif;--r:8px;--r2:12px;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh;}
+.topbar{position:sticky;top:0;z-index:100;background:rgba(13,17,23,.93);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:56px;gap:12px;}
+.logo{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.logo-mark{width:32px;height:32px;background:var(--accent);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+.logo-text{font-weight:700;font-size:15px;}.logo-sub{font-size:11px;color:var(--text2);}
+.nav-tabs{display:flex;gap:2px;flex-wrap:nowrap;overflow-x:auto;}
+.nav-tab{padding:5px 11px;border-radius:6px;border:none;background:transparent;color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.nav-tab:hover{background:var(--surface2);color:var(--text);}
+.nav-tab.active{background:var(--accent);color:#fff;}
+.topbar-right{display:flex;gap:6px;align-items:center;flex-shrink:0;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);transition:background .3s;}
+.sync-dot.ok{background:#4ade80;}.sync-dot.syncing{background:#fbbf24;animation:blink .6s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.main{max-width:1400px;margin:0 auto;padding:24px 20px;}
+.page{display:none;}.page.active{display:block;}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;}
+.stat-label{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:6px;}
+.stat-value{font-size:26px;font-weight:700;font-family:var(--mono);}
+.stat-value.blue{color:var(--accent2);}.stat-value.green{color:#4ade80;}.stat-value.yellow{color:#fbbf24;}.stat-value.purple{color:#a78bfa;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:14px;}
+.card-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--surface2);}
+.card-title{font-weight:600;font-size:14px;}
+table{width:100%;border-collapse:collapse;}
+th{text-align:left;padding:9px 12px;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;background:var(--surface2);border-bottom:1px solid var(--border);}
+td{padding:10px 12px;border-bottom:1px solid rgba(48,54,61,.5);font-size:13px;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}tr:hover td{background:rgba(255,255,255,.022);}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;}
+.badge-green{background:var(--green-bg);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
+.badge-yellow{background:var(--yellow-bg);color:#fbbf24;border:1px solid rgba(251,191,36,.2);}
+.badge-red{background:var(--red-bg);color:#f87171;border:1px solid rgba(248,113,113,.2);}
+.badge-blue{background:var(--accent-glow);color:var(--accent2);border:1px solid rgba(59,130,246,.2);}
+.badge-purple{background:var(--purple-bg);color:#a78bfa;border:1px solid rgba(167,139,250,.2);}
+.badge-gray{background:rgba(110,118,129,.12);color:var(--text2);border:1px solid var(--border);}
+.badge-teal{background:rgba(20,184,166,.1);color:#2dd4bf;border:1px solid rgba(20,184,166,.2);}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:6px;border:none;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:all .15s;white-space:nowrap;text-decoration:none;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#1d4ed8;}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border2);}.btn-secondary:hover{background:var(--surface3);}
+.btn-danger{background:var(--red-bg);color:#f87171;border:1px solid rgba(248,113,113,.2);}
+.btn-success{background:var(--green-bg);color:#4ade80;border:1px solid rgba(74,222,128,.2);}
+.btn-sm{padding:3px 9px;font-size:11px;}.btn-icon{padding:5px;width:28px;height:28px;justify-content:center;}
+.modal-overlay{display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:var(--r2);width:580px;max-width:96vw;max-height:90vh;overflow-y:auto;animation:slideUp .2s ease;}
+.modal-wide{width:720px;}
+@keyframes slideUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.modal-title{font-size:15px;font-weight:700;}.modal-body{padding:18px 20px;}.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.form-group{margin-bottom:12px;}.form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px;}
+.form-control{width:100%;padding:7px 11px;border-radius:6px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:var(--sans);font-size:13px;transition:border .15s;}
+.form-control:focus{outline:none;border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent-glow);}
+select.form-control{appearance:none;cursor:pointer;}textarea.form-control{resize:vertical;min-height:72px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.toolbar{display:flex;gap:7px;margin-bottom:14px;flex-wrap:wrap;align-items:center;}
+.search-wrap{position:relative;flex:1;min-width:160px;}
+.search-wrap input{width:100%;padding:7px 11px 7px 32px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--sans);font-size:13px;}
+.search-wrap input:focus{outline:none;border-color:var(--accent2);}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;font-size:13px;}
+.company-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;}
+.company-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);padding:16px;transition:border-color .15s,box-shadow .15s;cursor:pointer;}
+.company-card:hover{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent-glow);}
+.company-name{font-size:15px;font-weight:700;margin-bottom:2px;}.company-type-tag{font-size:11px;color:var(--text2);}
+.company-meta{display:flex;flex-direction:column;gap:4px;margin:9px 0;}
+.company-meta-row{display:flex;gap:6px;font-size:12px;}.meta-label{color:var(--text3);min-width:52px;}
+.company-actions{display:flex;gap:5px;border-top:1px solid var(--border);padding-top:10px;}
+.detail-overlay{display:none;position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.5);backdrop-filter:blur(3px);}
+.detail-overlay.open{display:block;}
+.detail-panel{position:fixed;right:0;top:0;bottom:0;z-index:151;width:520px;max-width:96vw;background:var(--surface);border-left:1px solid var(--border2);overflow-y:auto;animation:slideLeft .2s ease;display:none;}
+.detail-panel.open{display:block;}
+@keyframes slideLeft{from{transform:translateX(28px);opacity:0}to{transform:none;opacity:1}}
+.detail-header{padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:10;display:flex;align-items:flex-start;justify-content:space-between;}
+.detail-body{padding:18px 20px;}
+.detail-section{margin-bottom:22px;}
+.detail-section-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px;}
+.detail-row{display:flex;gap:8px;margin-bottom:7px;font-size:13px;}.detail-key{color:var(--text2);min-width:88px;}
+.timeline-item{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(48,54,61,.4);}
+.timeline-item:last-child{border-bottom:none;}
+.timeline-date{min-width:76px;font-family:var(--mono);font-size:11px;color:var(--text2);padding-top:2px;}
+.timeline-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+.timeline-content{flex:1;}.timeline-title{font-weight:600;font-size:13px;margin-bottom:2px;}.timeline-sub{font-size:12px;color:var(--text2);}
+.cal-strip{display:flex;gap:5px;margin-bottom:18px;overflow-x:auto;padding-bottom:4px;}
+.cal-day{flex-shrink:0;width:50px;padding:7px 5px;border:1px solid var(--border);border-radius:7px;text-align:center;}
+.cal-day.has-event{border-color:var(--accent2);background:var(--accent-glow);}
+.cal-day.today{border-color:#4ade80;background:var(--green-bg);}
+.cal-day-wd{font-size:10px;color:var(--text3);}.cal-day-num{font-size:15px;font-weight:700;font-family:var(--mono);margin:2px 0;}
+.cal-day-dot{width:5px;height:5px;border-radius:50%;background:var(--accent2);margin:0 auto;}
+.chip-wrap{display:flex;flex-wrap:wrap;gap:3px;}
+.chip{padding:2px 7px;border-radius:4px;background:var(--surface3);color:var(--text2);font-size:11px;border:1px solid var(--border);}
+.empty-state{text-align:center;padding:48px 20px;color:var(--text2);}
+.empty-icon{font-size:34px;margin-bottom:10px;opacity:.38;}.empty-text{font-size:14px;font-weight:500;margin-bottom:3px;}.empty-sub{font-size:12px;color:var(--text3);}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.section-title{font-size:18px;font-weight:700;}.section-sub{font-size:13px;color:var(--text2);margin-top:2px;}
+.toast-wrap{position:fixed;bottom:22px;right:22px;z-index:999;display:flex;flex-direction:column;gap:7px;}
+.toast{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:11px 14px;font-size:13px;animation:toastIn .2s ease;box-shadow:0 8px 24px rgba(0,0,0,.3);display:flex;align-items:center;gap:8px;}
+@keyframes toastIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.toast.success{border-left:3px solid #4ade80;}.toast.info{border-left:3px solid var(--accent2);}.toast.warning{border-left:3px solid #fbbf24;}
+.loading-overlay{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;}
+.loading-spinner{width:38px;height:38px;border:3px solid var(--border2);border-top-color:var(--accent2);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--text2);}
+
+/* ── 게시판 ── */
+.post-list{display:flex;flex-direction:column;gap:1px;}
+.post-row{padding:12px 16px;border-bottom:1px solid rgba(48,54,61,.4);display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .12s;}
+.post-row:hover{background:rgba(255,255,255,.03);}
+.post-row:last-child{border-bottom:none;}
+.post-num{font-family:var(--mono);font-size:11px;color:var(--text3);min-width:28px;}
+.post-title{flex:1;font-size:13px;font-weight:500;}
+.post-title .reply-cnt{color:var(--accent2);font-size:11px;margin-left:4px;}
+.post-meta{font-size:11px;color:var(--text3);white-space:nowrap;}
+.post-detail{background:var(--surface2);border-radius:var(--r);padding:16px;margin-bottom:12px;}
+.post-content{font-size:13px;color:var(--text);line-height:1.8;white-space:pre-wrap;word-break:break-word;}
+.comment-item{padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;}
+.comment-author{font-size:11px;font-weight:700;color:var(--accent2);margin-bottom:4px;}
+.comment-body{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap;}
+.comment-meta{font-size:11px;color:var(--text3);margin-top:4px;}
+
+/* ── 사용자 탭 ── */
+.user-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(48,54,61,.4);cursor:pointer;transition:background .12s;}
+.user-row:hover{background:rgba(255,255,255,.03);}
+.user-avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+.user-info{flex:1;min-width:0;}
+.user-name{font-weight:600;font-size:13px;}
+.user-email{font-size:11px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── 명렬표 업로드 ── */
+.drop-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:all .15s;color:var(--text2);}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent2);background:var(--accent-glow);color:var(--accent2);}
+.drop-zone-icon{font-size:28px;margin-bottom:8px;}
+.drop-zone-text{font-size:13px;}.drop-zone-hint{font-size:11px;color:var(--text3);margin-top:4px;}
+.preview-table-wrap{max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);}
+
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px;}
+@media(max-width:768px){.stats-row{grid-template-columns:1fr 1fr;}.form-row{grid-template-columns:1fr;}.company-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loading"><div class="loading-spinner"></div><div class="loading-text">Firebase 연결 중...</div></div>
+
+<nav class="topbar">
+  <div class="logo">
+    <div class="logo-mark">관리</div>
+    <div><div class="logo-text">취업 지원 관리</div><div class="logo-sub" id="school-sub">관리자</div></div>
+  </div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">📊 대시보드</button>
+    <button class="nav-tab" onclick="showPage('companies')">🏢 기업</button>
+    <button class="nav-tab" onclick="showPage('students')">👥 학생</button>
+    <button class="nav-tab" onclick="showPage('schedule')">📅 일정</button>
+    <button class="nav-tab" onclick="showPage('board')">💬 게시판</button>
+    <button class="nav-tab" onclick="showPage('users')">👤 사용자</button>
+  </div>
+  <div class="topbar-right">
+    <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);">
+      <div class="sync-dot" id="sync-dot"></div><span id="sync-label">연결 중</span>
+    </div>
+    <button class="btn btn-secondary btn-sm" onclick="exportCSV()">⬇ CSV</button>
+    <button class="btn btn-secondary btn-sm" onclick="doLogout()">로그아웃</button>
+  </div>
+</nav>
+
+<main class="main">
+
+<!-- ═══ DASHBOARD ═══ -->
+<div id="page-dashboard" class="page active">
+  <div class="section-header">
+    <div><div class="section-title">대시보드</div><div class="section-sub">전체 취업 지원 현황</div></div>
+    <div style="font-size:11px;color:var(--text2);font-family:var(--mono);" id="today-date"></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-label">등록 기업</div><div class="stat-value blue" id="st-companies">-</div></div>
+    <div class="stat-card"><div class="stat-label">관리 학생</div><div class="stat-value green" id="st-students">-</div></div>
+    <div class="stat-card"><div class="stat-label">총 지원 건수</div><div class="stat-value yellow" id="st-apps">-</div></div>
+    <div class="stat-card"><div class="stat-label">합격·최종합격</div><div class="stat-value purple" id="st-pass">-</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+    <div class="card"><div class="card-header"><span class="card-title">⏰ 마감 임박 (7일)</span><span class="badge badge-red" id="urgent-cnt">0건</span></div><div id="urgent-list" style="padding:2px 0;"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">📋 최근 지원 내역</span></div><div id="recent-apps" style="padding:2px 0;"></div></div>
+  </div>
+  <div class="card" style="margin-top:14px;"><div class="card-header"><span class="card-title">📊 기업별 지원 현황</span></div><div id="company-summary"></div></div>
+</div>
+
+<!-- ═══ COMPANIES ═══ -->
+<div id="page-companies" class="page">
+  <div class="section-header">
+    <div><div class="section-title">기업 관리</div><div class="section-sub">채용 공고 및 접수 현황</div></div>
+    <button class="btn btn-primary" onclick="openCompanyModal()">+ 기업 추가</button>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="기업명 검색..." id="co-search" oninput="renderCompanies()"></div>
+    <select class="form-control" style="width:120px;" id="co-type-f" onchange="renderCompanies()"><option value="">전체 유형</option><option>공기업</option><option>대기업</option><option>중견기업</option><option>중소기업</option><option>기타</option></select>
+    <select class="form-control" style="width:120px;" id="co-status-f" onchange="renderCompanies()"><option value="">전체 상태</option><option>접수중</option><option>접수예정</option><option>접수마감</option></select>
+  </div>
+  <div class="company-grid" id="company-grid"></div>
+</div>
+
+<!-- ═══ STUDENTS ═══ -->
+<div id="page-students" class="page">
+  <div class="section-header">
+    <div><div class="section-title">학생 관리</div><div class="section-sub">학생별 지원 현황 및 추천서 관리</div></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-secondary" onclick="openImportModal()">📂 명렬표 업로드</button>
+      <button class="btn btn-primary" onclick="openStudentModal()">+ 학생 추가</button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="이름·학번 검색..." id="st-search" oninput="renderStudents()"></div>
+    <select class="form-control" style="width:110px;" id="st-dept-f" onchange="renderStudents()"><option value="">전체 학과</option></select>
+    <select class="form-control" style="width:100px;" id="st-class-f" onchange="renderStudents()"><option value="">전체 반</option></select>
+    <select class="form-control" style="width:110px;" id="st-rec-f" onchange="renderStudents()"><option value="">추천서 전체</option><option>미신청</option><option>신청</option><option>발급완료</option></select>
+    <select class="form-control" style="width:110px;" id="st-status-f" onchange="renderStudents()"><option value="">전체 현황</option><option>준비중</option><option>서류접수</option><option>필기전형</option><option>면접전형</option><option>합격</option><option>최종합격</option><option>불합격</option></select>
+  </div>
+  <div class="card">
+    <table>
+      <thead><tr><th>학번</th><th>이름</th><th>학과/반</th><th>지원 기업</th><th>추천서</th><th>현황</th><th>가입</th><th>관리</th></tr></thead>
+      <tbody id="student-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ═══ SCHEDULE ═══ -->
+<div id="page-schedule" class="page">
+  <div class="section-header">
+    <div><div class="section-title">일정 관리</div><div class="section-sub">채용 접수 일정 타임라인</div></div>
+    <button class="btn btn-primary" onclick="openScheduleModal()">+ 일정 추가</button>
+  </div>
+  <div id="cal-strip" class="cal-strip"></div>
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:14px;">
+    <div class="card"><div class="card-header"><span class="card-title">📋 전체 일정</span></div><div id="sched-list" style="padding:7px 12px;"></div></div>
+    <div class="card"><div class="card-header"><span class="card-title">⚡ 이번 달 마감</span></div><div id="this-month" style="padding:7px 12px;"></div></div>
+  </div>
+</div>
+
+<!-- ═══ BOARD ═══ -->
+<div id="page-board" class="page">
+  <div class="section-header">
+    <div><div class="section-title">질문 게시판</div><div class="section-sub">학생 취업 관련 질문 관리</div></div>
+    <div style="display:flex;gap:7px;">
+      <select class="form-control" style="width:120px;" id="board-filter" onchange="renderBoard()"><option value="">전체 상태</option><option value="unanswered">미답변</option><option value="answered">답변완료</option></select>
+    </div>
+  </div>
+  <div class="card" id="board-card">
+    <div class="card-header"><span class="card-title" id="board-title">전체 글 목록</span><span class="badge badge-blue" id="board-cnt">0건</span></div>
+    <div id="board-list"></div>
+  </div>
+  <!-- 글 상세 -->
+  <div id="post-detail-wrap" style="display:none;">
+    <button class="btn btn-secondary btn-sm" onclick="closePostDetail()" style="margin-bottom:12px;">← 목록으로</button>
+    <div class="card">
+      <div class="card-header" style="flex-direction:column;align-items:flex-start;gap:6px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;width:100%;">
+          <div style="font-size:16px;font-weight:700;" id="pd-title"></div>
+          <span id="pd-status-badge"></span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);" id="pd-meta"></div>
+      </div>
+      <div class="post-detail"><div class="post-content" id="pd-body"></div></div>
+      <div style="padding:14px 16px;border-top:1px solid var(--border);">
+        <div class="detail-section-title" style="margin-bottom:10px;">💬 댓글 <span id="pd-reply-cnt" style="color:var(--accent2);">0</span></div>
+        <div id="pd-comments"></div>
+        <div style="margin-top:12px;">
+          <textarea class="form-control" id="admin-reply" placeholder="답변을 입력하세요..." style="min-height:80px;margin-bottom:8px;"></textarea>
+          <div style="display:flex;gap:7px;">
+            <button class="btn btn-primary" onclick="submitAdminReply()">답변 등록</button>
+            <button class="btn btn-success" id="btn-mark-answered" onclick="toggleAnswered()">✓ 답변완료 처리</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ USERS ═══ -->
+<div id="page-users" class="page">
+  <div class="section-header">
+    <div><div class="section-title">사용자 관리</div><div class="section-sub">가입 회원 목록 및 역할 부여</div></div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap"><span class="search-icon">🔍</span><input type="text" placeholder="이름·이메일 검색..." id="usr-search" oninput="renderUsers()"></div>
+    <select class="form-control" style="width:120px;" id="usr-role-f" onchange="renderUsers()"><option value="">전체 역할</option><option value="pending">승인대기</option><option value="student">학생</option><option value="general_teacher">교사</option><option value="employment_teacher">취업담당</option><option value="master">마스터</option></select>
+  </div>
+  <div class="card">
+    <div id="user-list"></div>
+  </div>
+</div>
+
+</main>
+
+<!-- ══════ MODALS ══════ -->
+
+<!-- Company -->
+<div class="modal-overlay" id="co-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="co-modal-title">기업 추가</div><button class="btn btn-icon btn-secondary" onclick="closeModal('co-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="co-id">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">기업명 *</label><input type="text" class="form-control" id="co-name"></div>
+        <div class="form-group"><label class="form-label">유형</label><select class="form-control" id="co-type"><option>공기업</option><option>대기업</option><option>중견기업</option><option>중소기업</option><option>기타</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">채용 직종</label><input type="text" class="form-control" id="co-job"></div>
+        <div class="form-group"><label class="form-label">채용 인원</label><input type="number" class="form-control" id="co-hc" placeholder="명"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">접수 시작일</label><input type="date" class="form-control" id="co-start"></div>
+        <div class="form-group"><label class="form-label">접수 마감일</label><input type="date" class="form-control" id="co-end"></div>
+      </div>
+      <div class="form-group"><label class="form-label">접수 방법</label><input type="text" class="form-control" id="co-method"></div>
+      <div class="form-group"><label class="form-label">전형 일정</label><textarea class="form-control" id="co-process" placeholder="서류 → 필기 → 면접 → 최종합격"></textarea></div>
+      <div class="form-group"><label class="form-label">상태</label><select class="form-control" id="co-status"><option>접수예정</option><option>접수중</option><option>접수마감</option></select></div>
+      <div class="form-group"><label class="form-label">비고</label><textarea class="form-control" id="co-memo"></textarea></div>
+      <div class="form-group"><label class="form-label">공고 링크</label><input type="url" class="form-control" id="co-url" placeholder="https://..."></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('co-modal')">취소</button><button class="btn btn-primary" onclick="saveCompany()">저장</button></div>
+  </div>
+</div>
+
+<!-- Student -->
+<div class="modal-overlay" id="st-modal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title" id="st-modal-title">학생 추가</div><button class="btn btn-icon btn-secondary" onclick="closeModal('st-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="st-id">
+      <!-- 이름 -->
+      <div class="form-group"><label class="form-label">이름 *</label><input type="text" class="form-control" id="st-name"></div>
+      <!-- 학년/반/번호 → 학번 자동생성 -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div class="form-group">
+          <label class="form-label">학년 *</label>
+          <select class="form-control" id="st-grade" onchange="previewStudentNum()">
+            <option value="">-</option><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">반 *</label>
+          <input type="number" class="form-control" id="st-classnum" min="1" max="20" placeholder="반" oninput="previewStudentNum()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">번호 *</label>
+          <input type="number" class="form-control" id="st-order" min="1" max="60" placeholder="번" oninput="previewStudentNum()">
+        </div>
+      </div>
+      <!-- 학번 미리보기 -->
+      <div id="st-num-preview" style="font-size:12px;color:var(--text2);margin:-6px 0 10px;padding:6px 10px;background:var(--surface2);border-radius:6px;display:none;">
+        자동 생성 학번: <strong id="st-num-preview-val" style="color:var(--accent2);font-family:var(--mono);"></strong>
+      </div>
+      <!-- 학과 + 연락처 -->
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">학과</label>
+          <select class="form-control" id="st-dept">
+            <option value="">-- 선택 --</option>
+            <option>기계시스템과</option><option>설비시스템과</option>
+            <option>스마트팩토리과(로봇)</option><option>스마트팩토리과(메카)</option><option>전기과</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">연락처</label><input type="text" class="form-control" id="st-phone" placeholder="010-0000-0000"></div>
+      </div>
+      <!-- 지원 기업 -->
+      <div class="form-group">
+        <label class="form-label">지원 기업</label>
+        <div style="display:flex;gap:0;margin-bottom:7px;border:1px solid var(--border2);border-radius:6px;overflow:hidden;">
+          <button type="button" id="tab-registered" onclick="switchCompanyTab('registered')" style="flex:1;padding:6px;border:none;background:var(--accent);color:#fff;font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;">📋 등록 기업</button>
+          <button type="button" id="tab-manual" onclick="switchCompanyTab('manual')" style="flex:1;padding:6px;border:none;background:var(--surface2);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;">✏️ 직접 입력</button>
+        </div>
+        <div id="panel-registered"><div id="st-co-checks" style="display:flex;flex-wrap:wrap;gap:6px;padding:9px;background:var(--surface2);border-radius:6px;border:1px solid var(--border2);min-height:40px;"></div></div>
+        <div id="panel-manual" style="display:none;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:5px;">쉼표(,) 또는 엔터로 구분</div>
+          <input type="text" class="form-control" id="st-co-manual" placeholder="현대위아, 두산인프라코어">
+          <div id="st-manual-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px;min-height:18px;"></div>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">메모</label><textarea class="form-control" id="st-memo"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('st-modal')">취소</button><button class="btn btn-primary" onclick="saveStudent()">저장</button></div>
+  </div>
+</div>
+
+<!-- Schedule -->
+<div class="modal-overlay" id="sc-modal">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header"><div class="modal-title">일정 추가/수정</div><button class="btn btn-icon btn-secondary" onclick="closeModal('sc-modal')">✕</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="sc-id">
+      <div class="form-group"><label class="form-label">제목 *</label><input type="text" class="form-control" id="sc-title"></div>
+      <div class="form-group"><label class="form-label">연결 기업</label><select class="form-control" id="sc-company"></select></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">날짜 *</label><input type="date" class="form-control" id="sc-date"></div>
+        <div class="form-group"><label class="form-label">종류</label><select class="form-control" id="sc-type"><option>서류마감</option><option>필기시험</option><option>면접</option><option>합격발표</option><option>기타</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">메모</label><textarea class="form-control" id="sc-memo"></textarea></div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('sc-modal')">취소</button><button class="btn btn-primary" onclick="saveSchedule()">저장</button></div>
+  </div>
+</div>
+
+<!-- Application -->
+<div class="modal-overlay" id="app-modal">
+  <div class="modal" style="width:460px;">
+    <div class="modal-header">
+      <div class="modal-title" id="app-modal-title">지원 내역 추가</div>
+      <button class="btn btn-icon btn-secondary" onclick="closeModal('app-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="app-sid">
+      <input type="hidden" id="app-id">
+      <!-- 기업명 + 직종 병기 -->
+      <div class="form-group">
+        <label class="form-label">기업 *</label>
+        <select class="form-control" id="app-company"></select>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">지원일</label>
+          <input type="date" class="form-control" id="app-date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">추천서</label>
+          <select class="form-control" id="app-rec">
+            <option>불필요</option>
+            <option>필요</option>
+            <option>신청</option>
+            <option>발급완료</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">단계</label>
+        <select class="form-control" id="app-stage">
+          <option>준비중</option>
+          <option>서류접수</option>
+          <option>필기전형</option>
+          <option>면접전형</option>
+          <option>합격</option>
+          <option>최종합격</option>
+          <option>불합격</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">메모</label>
+        <textarea class="form-control" id="app-memo"></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('app-modal')">취소</button>
+      <button class="btn btn-primary" onclick="saveApplication()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 명렬표 업로드 -->
+<div class="modal-overlay" id="import-modal">
+  <div class="modal modal-wide">
+    <div class="modal-header"><div class="modal-title">📂 전교생 명렬표 업로드</div><button class="btn btn-icon btn-secondary" onclick="closeModal('import-modal')">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.8;">
+        CSV 또는 Excel 형식의 명렬표를 업로드하면 학생 관리 탭에 자동으로 등록됩니다.<br>
+        <strong style="color:var(--accent2);">필수 컬럼:</strong> 학번, 이름, 학과, 학년반 (순서 무관, 헤더 첫 행 기준)
+      </div>
+      <div class="drop-zone" id="import-drop" onclick="document.getElementById('import-file').click()"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleImportDrop(event)">
+        <div class="drop-zone-icon">📄</div>
+        <div class="drop-zone-text">클릭하거나 파일을 드래그하세요</div>
+        <div class="drop-zone-hint">CSV, XLS, XLSX 지원</div>
+      </div>
+      <input type="file" id="import-file" accept=".csv,.xlsx,.xls" style="display:none" onchange="handleImportFile(event)">
+      <div id="import-preview" style="margin-top:12px;display:none;">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:7px;" id="import-preview-label"></div>
+        <div class="preview-table-wrap" id="import-table-wrap"></div>
+        <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+          <select class="form-control" style="width:150px;" id="import-dup-policy">
+            <option value="skip">중복 학번 건너뜀</option>
+            <option value="update">중복 학번 덮어쓰기</option>
+          </select>
+          <button class="btn btn-primary" onclick="confirmImport()">📥 등록 시작</button>
+          <span id="import-progress" style="font-size:12px;color:var(--text2);"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 사용자 상세 패널 -->
+<div class="detail-overlay" id="usr-overlay" onclick="closeUserPanel()"></div>
+<div class="detail-panel" id="usr-panel">
+  <div class="detail-header">
+    <div><div style="font-size:18px;font-weight:700;" id="upd-name">-</div><div style="font-size:12px;color:var(--text2);margin-top:2px;" id="upd-email">-</div></div>
+    <button class="btn btn-icon btn-secondary" onclick="closeUserPanel()">✕</button>
+  </div>
+  <div class="detail-body" id="upd-body"></div>
+</div>
+
+<!-- 학생 상세 패널 -->
+<div class="detail-overlay" id="sd-overlay" onclick="closeSdPanel()"></div>
+<div class="detail-panel" id="sd-panel">
+  <div class="detail-header">
+    <div><div style="font-size:18px;font-weight:700;" id="sdp-name">-</div><div style="font-size:12px;color:var(--text2);margin-top:2px;" id="sdp-sub">-</div></div>
+    <div style="display:flex;gap:5px;">
+      <button class="btn btn-primary btn-sm" id="sdp-add">+ 지원 추가</button>
+      <button class="btn btn-secondary btn-sm" id="sdp-edit">수정</button>
+      <button class="btn btn-icon btn-secondary" onclick="closeSdPanel()">✕</button>
+    </div>
+  </div>
+  <div class="detail-body" id="sdp-body"></div>
+</div>
+
+<!-- 기업 상세 패널 -->
+<div class="detail-overlay" id="co-overlay" onclick="closeCoPanel()"></div>
+<div class="detail-panel" id="co-panel">
+  <div class="detail-header">
+    <div><div style="font-size:18px;font-weight:700;" id="dp-name">-</div><div style="font-size:12px;color:var(--text2);margin-top:2px;" id="dp-type">-</div></div>
+    <div style="display:flex;gap:5px;"><button class="btn btn-secondary btn-sm" id="dp-edit">수정</button><button class="btn btn-icon btn-secondary" onclick="closeCoPanel()">✕</button></div>
+  </div>
+  <div class="detail-body" id="dp-body"></div>
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script>
+// ── Auth 확인 ──
+let _currentUser = null;
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.database();
+
+document.getElementById('school-sub').textContent = SCHOOL_NAME + ' · 관리자';
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+
+auth.onAuthStateChanged(async user => {
+  if (!user) { window.location.href = 'index.html'; return; }
+  const snap = await db.ref('users/'+user.uid).once('value');
+  const ud = snap.val();
+  if (!ud || !['master','employment_teacher','general_teacher'].includes(ud.role)) {
+    window.location.href = 'index.html'; return;
+  }
+  _currentUser = { ...ud, uid: user.uid };
+  initListeners();
+});
+
+function doLogout() { auth.signOut().then(()=>window.location.href='index.html'); }
+
+// ── STATE ──
+let STATE = { companies:{}, students:{}, schedules:{}, users:{}, posts:{} };
+
+function initListeners() {
+  db.ref('/').on('value', snap => {
+    const d = snap.val() || {};
+    STATE.companies = d.companies || {};
+    STATE.students  = d.students  || {};
+    STATE.schedules = d.schedules || {};
+    STATE.users     = d.users     || {};
+    STATE.posts     = d.posts     || {};
+    document.getElementById('loading').style.display = 'none';
+    setSyncOk();
+    refreshAll();
+  }, () => setSyncError());
+  db.ref('.info/connected').on('value', s => s.val() ? setSyncOk() : setSyncError());
+}
+
+function setSyncOk()  { document.getElementById('sync-dot').className='sync-dot ok'; document.getElementById('sync-label').textContent='실시간'; }
+function setSyncError(){ document.getElementById('sync-dot').className='sync-dot'; document.getElementById('sync-label').textContent='끊김'; }
+function setSyncing() { document.getElementById('sync-dot').className='sync-dot syncing'; document.getElementById('sync-label').textContent='저장 중'; }
+function uid() { return db.ref().push().key; }
+function objToArr(o) { return o ? Object.entries(o).map(([id,v])=>({...v,id})) : []; }
+
+function refreshAll() {
+  const page = document.querySelector('.page.active')?.id?.replace('page-','') || 'dashboard';
+  renderDashboard();
+  if(page==='companies') renderCompanies();
+  if(page==='students')  { renderStudents(); updateFilters(); }
+  if(page==='schedule')  renderSchedule();
+  if(page==='board')     renderBoard();
+  if(page==='users')     renderUsers();
+  updateFilters();
+}
+
+// ── NAV ──
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  const pages=['dashboard','companies','students','schedule','board','users'];
+  document.querySelectorAll('.nav-tab')[pages.indexOf(name)]?.classList.add('active');
+  if(name==='companies') renderCompanies();
+  if(name==='students')  { renderStudents(); updateFilters(); }
+  if(name==='schedule')  renderSchedule();
+  if(name==='board')     renderBoard();
+  if(name==='users')     renderUsers();
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ─────────────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────────────
+function renderDashboard() {
+  const cos=objToArr(STATE.companies), sts=objToArr(STATE.students);
+  document.getElementById('st-companies').textContent = cos.length;
+  document.getElementById('st-students').textContent  = sts.length;
+  const totalApps=sts.reduce((a,s)=>a+objToArr(s.applications).length,0);
+  document.getElementById('st-apps').textContent  = totalApps;
+  document.getElementById('st-pass').textContent  = sts.filter(s=>['합격','최종합격'].includes(s.status)).length;
+  const today=new Date(); today.setHours(0,0,0,0);
+  const urgent=cos.filter(c=>{if(!c.endDate)return false;const d=new Date(c.endDate);d.setHours(0,0,0,0);return(d-today)/86400000<=7&&(d-today)/86400000>=0;});
+  document.getElementById('urgent-cnt').textContent=urgent.length+'건';
+  document.getElementById('urgent-list').innerHTML=urgent.length===0
+    ? '<div class="empty-state" style="padding:18px;"><div class="empty-icon" style="font-size:22px;">✅</div><div class="empty-text">임박 공고 없음</div></div>'
+    : urgent.map(c=>{const d=new Date(c.endDate);d.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000);
+      return`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;"><div><div style="font-weight:600;font-size:13px;">${c.name}</div><div style="font-size:11px;color:var(--text2);">${c.job||'-'}</div></div><span class="badge ${diff<=0?'badge-red':diff<=3?'badge-yellow':'badge-blue'}">${diff===0?'D-DAY':'D-'+diff}</span></div>`;}).join('');
+  const allApps=[];
+  sts.forEach(s=>objToArr(s.applications).forEach(a=>allApps.push({...a,studentName:s.name,studentId:s.id})));
+  allApps.sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  document.getElementById('recent-apps').innerHTML=allApps.length===0
+    ? '<div class="empty-state" style="padding:18px;"><div class="empty-icon" style="font-size:22px;">📄</div><div class="empty-text">지원 내역 없음</div></div>'
+    : allApps.slice(0,8).map(a=>{const co=STATE.companies[a.companyId];return`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px;"><div><div style="font-weight:600;font-size:13px;">${a.studentName}</div><div style="font-size:11px;color:var(--text2);">${co?co.name:'(삭제)'}</div></div>${stageBadge(a.stage)}</div>`;}).join('');
+  document.getElementById('company-summary').innerHTML=cos.length===0
+    ? '<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-text">기업 없음</div></div>'
+    : `<table><thead><tr><th>기업명</th><th>유형</th><th>마감일</th><th>상태</th><th>지원 학생</th></tr></thead><tbody>`
+      +cos.map(c=>{const cnt=sts.filter(s=>(s.companyIds||[]).includes(c.id)||objToArr(s.applications).some(a=>a.companyId===c.id)).length;
+        return`<tr><td style="font-weight:600;">${c.name}</td><td><span class="badge ${typeBadge(c.type)}">${c.type}</span></td><td style="font-family:var(--mono);font-size:11px;">${c.endDate||'-'}</td><td>${statusBadge(c.status)}</td><td style="font-family:var(--mono);">${cnt}명</td></tr>`;}).join('')+'</tbody></table>';
+}
+
+// ─────────────────────────────────────────────────────
+//  COMPANIES
+// ─────────────────────────────────────────────────────
+function openCompanyModal(id) {
+  document.getElementById('co-modal-title').textContent = id?'기업 수정':'기업 추가';
+  document.getElementById('co-id').value = id||'';
+  const c=id?(STATE.companies[id]||{}):{};
+  const fields={'co-name':c.name||'','co-type':c.type||'공기업','co-job':c.job||'','co-hc':c.headcount||'','co-start':c.startDate||'','co-end':c.endDate||'','co-method':c.applyMethod||'','co-process':c.process||'','co-status':c.status||'접수예정','co-memo':c.memo||'','co-url':c.url||''};
+  Object.entries(fields).forEach(([k,vl])=>{const el=document.getElementById(k);if(el)el.value=vl;});
+  document.getElementById('co-modal').classList.add('open');
+}
+async function saveCompany() {
+  const name=document.getElementById('co-name').value.trim();
+  if(!name){showToast('기업명 입력 필요','warning');return;}
+  const id=document.getElementById('co-id').value||uid();
+  const isNew = !document.getElementById('co-id').value;
+  const obj={name,type:v('co-type'),job:v('co-job'),headcount:v('co-hc'),startDate:v('co-start'),endDate:v('co-end'),applyMethod:v('co-method'),process:v('co-process'),status:v('co-status'),memo:v('co-memo'),url:v('co-url'),updatedAt:new Date().toISOString()};
+  setSyncing();
+  await db.ref('/companies/'+id).set(obj);
+  // ★ 접수 마감일이 있으면 일정 자동 등록 (신규 기업일 때만)
+  if (isNew && obj.endDate) {
+    const schedId = uid();
+    await db.ref('/schedules/'+schedId).set({
+      title:     `${name} 서류 마감`,
+      date:      obj.endDate,
+      companyId: id,
+      type:      '서류마감',
+      memo:      '기업 등록 시 자동 생성',
+      autoCreated: true
+    });
+    showToast(`"${name}" 저장 + 마감 일정 자동 등록`,'success');
+  } else {
+    showToast(`"${name}" 저장`,'success');
+  }
+  closeModal('co-modal');
+}
+async function deleteCompany(id){if(!confirm('기업을 삭제할까요?'))return;await db.ref('/companies/'+id).remove();showToast('삭제','info');}
+
+async function toggleSpecial(id, current) {
+  await db.ref('/companies/'+id+'/isSpecial').set(!current);
+  showToast(current ? '특채 해제' : '⭐ 특채 지정','success');
+}
+function renderCompanies(){
+  const q=(document.getElementById('co-search').value||'').toLowerCase();
+  const tf=document.getElementById('co-type-f').value, sf=document.getElementById('co-status-f').value;
+  const list=objToArr(STATE.companies).filter(c=>(!q||c.name.toLowerCase().includes(q))&&(!tf||c.type===tf)&&(!sf||c.status===sf));
+  const grid=document.getElementById('company-grid');
+  if(!list.length){grid.innerHTML='<div class="empty-state" style="grid-column:1/-1;"><div class="empty-icon">🏢</div><div class="empty-text">기업 없음</div></div>';return;}
+  const today=new Date();today.setHours(0,0,0,0);
+  grid.innerHTML=list.map(c=>{
+    const appCnt=objToArr(STATE.students).filter(s=>(s.companyIds||[]).includes(c.id)||objToArr(s.applications).some(a=>a.companyId===c.id)).length;
+    let dday='';
+    if(c.endDate){const d=new Date(c.endDate);d.setHours(0,0,0,0);const diff=Math.round((d-today)/86400000);if(diff>=0)dday=`<span class="badge ${diff<=3?'badge-red':'badge-blue'}">${diff===0?'D-DAY':'D-'+diff}</span>`;}
+    return`<div class="company-card" onclick="openCoDetail('${c.id}')">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:9px;">
+        <div><div class="company-name">${c.name}</div><div class="company-type-tag">${c.job||'직종 미입력'}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;"><span class="badge ${typeBadge(c.type)}">${c.type}</span>${dday}</div>
+      </div>
+      <div class="company-meta">
+        <div class="company-meta-row"><span class="meta-label">📅 마감</span><span style="font-family:var(--mono);font-size:11px;">${c.endDate||'-'}</span></div>
+        <div class="company-meta-row"><span class="meta-label">👥 지원</span><span>${appCnt}명</span></div>
+      </div>
+      <div style="margin-bottom:9px;">${statusBadge(c.status)}${c.isSpecial?'<span class="badge" style="background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.4);margin-left:5px;">⭐ 특채</span>':''}</div>
+      <div class="company-actions">
+        <button class="btn btn-secondary btn-sm" onclick="event.stopPropagation();openCompanyModal('${c.id}')">수정</button>
+        <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCompany('${c.id}')">삭제</button>
+        <button class="btn btn-sm" style="${c.isSpecial?'background:rgba(251,191,36,.15);color:#fbbf24;border:1px solid rgba(251,191,36,.4);':'background:var(--surface2);color:var(--text2);border:1px solid var(--border2);'}" onclick="event.stopPropagation();toggleSpecial('${c.id}',${!!c.isSpecial})">${c.isSpecial?'⭐ 특채해제':'⭐ 특채지정'}</button>
+        ${c.url?`<a href="${c.url}" target="_blank" class="btn btn-secondary btn-sm" onclick="event.stopPropagation()">공고↗</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────
+//  STUDENTS
+// ─────────────────────────────────────────────────────
+// 학번 미리보기: 학년G + 반CC + 번호NN → GCCNN
+function previewStudentNum() {
+  const g  = document.getElementById('st-grade').value;
+  const cl = String(document.getElementById('st-classnum').value||'').padStart(2,'0');
+  const or = String(document.getElementById('st-order').value||'').padStart(2,'0');
+  const prev = document.getElementById('st-num-preview');
+  if (g && cl !== '00' && or !== '00') {
+    const num = g + cl + or;
+    document.getElementById('st-num-preview-val').textContent = num;
+    prev.style.display = 'block';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+function openStudentModal(id) {
+  document.getElementById('st-modal-title').textContent=id?'학생 수정':'학생 추가';
+  document.getElementById('st-id').value=id||'';
+  const s=id?(STATE.students[id]||{}):{};
+
+  // 이름·학과·연락처·메모
+  document.getElementById('st-name').value  = s.name||'';
+  document.getElementById('st-dept').value  = s.dept||'';
+  document.getElementById('st-phone').value = s.phone||'';
+  document.getElementById('st-memo').value  = s.memo||'';
+
+  // 학년/반/번호 역파싱 (기존 학번 "GCCNN" 형식)
+  const num = String(s.number||'');
+  if (num.length === 5) {
+    document.getElementById('st-grade').value    = num[0];
+    document.getElementById('st-classnum').value = parseInt(num.slice(1,3));
+    document.getElementById('st-order').value    = parseInt(num.slice(3,5));
+  } else {
+    document.getElementById('st-grade').value    = '';
+    document.getElementById('st-classnum').value = '';
+    document.getElementById('st-order').value    = '';
+  }
+  previewStudentNum();
+
+  const cos=objToArr(STATE.companies), cb=document.getElementById('st-co-checks'), selIds=s.companyIds||[];
+  cb.innerHTML=cos.length===0?'<span style="color:var(--text3);font-size:12px;">등록된 기업 없음</span>':cos.map(c=>`<label style="display:flex;align-items:center;gap:3px;font-size:12px;cursor:pointer;padding:2px 7px;background:var(--surface3);border-radius:4px;"><input type="checkbox" value="${c.id}" ${selIds.includes(c.id)?'checked':''} style="cursor:pointer;"> ${c.name}</label>`).join('');
+  window._manualCos=s.manualCompanies?[...s.manualCompanies]:[];
+  document.getElementById('st-co-manual').value='';
+  renderManualTags();
+  switchCompanyTab(window._manualCos.length>0?'manual':'registered');
+  document.getElementById('st-modal').classList.add('open');
+}
+
+async function saveStudent() {
+  const name = document.getElementById('st-name').value.trim();
+  if (!name) { showToast('이름 입력 필요','warning'); return; }
+
+  const g  = document.getElementById('st-grade').value;
+  const cl = String(document.getElementById('st-classnum').value||'').padStart(2,'0');
+  const or = String(document.getElementById('st-order').value||'').padStart(2,'0');
+  if (!g || cl==='00' || or==='00') { showToast('학년·반·번호를 모두 입력해 주세요','warning'); return; }
+
+  const autoNum  = g + cl + or;                  // 예: 20315
+  const classInfo = g + '-' + parseInt(cl);       // 예: 2-3
+
+  const id = document.getElementById('st-id').value || uid();
+  const checkedIds = Array.from(document.querySelectorAll('#st-co-checks input:checked')).map(i=>i.value);
+  const manualRaw  = document.getElementById('st-co-manual').value.trim();
+  if (manualRaw) manualRaw.split(',').map(s=>s.trim()).filter(Boolean).forEach(n=>{if(!window._manualCos.includes(n))window._manualCos.push(n);});
+  const existing = STATE.students[id]||{};
+
+  const obj = {
+    name,
+    number:         autoNum,
+    grade:          parseInt(g),
+    classNum:       parseInt(cl),
+    orderNum:       parseInt(or),
+    classInfo,
+    dept:           v('st-dept'),
+    phone:          v('st-phone'),
+    memo:           v('st-memo'),
+    companyIds:     checkedIds,
+    manualCompanies:window._manualCos||[],
+    applications:   existing.applications||{},
+    // 기존 데이터 유지
+    recommendation: existing.recommendation||'미신청',
+    status:         existing.status||'준비중',
+    updatedAt:      new Date().toISOString()
+  };
+  setSyncing();
+  await db.ref('/students/'+id).set(obj);
+  closeModal('st-modal');
+  showToast(`"${name}" (학번 ${autoNum}) 저장`,'success');
+}
+async function deleteStudent(id){if(!confirm('학생을 삭제할까요?'))return;await db.ref('/students/'+id).remove();showToast('삭제','info');}
+async function saveApplication() {
+  const sid = document.getElementById('app-sid').value;
+  const cid = document.getElementById('app-company').value;
+  if (!cid) { showToast('기업 선택 필요','warning'); return; }
+  const editId  = document.getElementById('app-id').value;
+  const id      = editId || uid();
+  const existing = editId ? (((STATE.students[sid]||{}).applications||{})[editId]||{}) : {};
+  const obj = {
+    companyId: cid,
+    date:      v('app-date'),
+    rec:       v('app-rec'),
+    stage:     v('app-stage'),
+    memo:      v('app-memo'),
+    createdAt: existing.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  setSyncing();
+  await db.ref('/students/'+sid+'/applications/'+id).set(obj);
+  const s = STATE.students[sid]||{}, ids = s.companyIds||[];
+  if (!ids.includes(cid)) await db.ref('/students/'+sid+'/companyIds').set([...ids, cid]);
+  closeModal('app-modal');
+  openStudentDetail(sid);
+  showToast(editId ? '지원 이력 수정':'지원 추가','success');
+}
+
+async function deleteApplication(sid,aid){await db.ref('/students/'+sid+'/applications/'+aid).remove();openStudentDetail(sid);showToast('삭제','info');}
+
+function openApplicationModal(sid, editAppId) {
+  document.getElementById('app-sid').value = sid;
+  document.getElementById('app-id').value  = editAppId||'';
+  document.getElementById('app-modal-title').textContent = editAppId ? '지원 이력 수정' : '지원 내역 추가';
+  // 기업 select: 기업명(직종) 병기
+  const cos = objToArr(STATE.companies);
+  document.getElementById('app-company').innerHTML = cos.map(c => {
+    const label = c.job ? `${c.name}(${c.job})` : c.name;
+    return `<option value="${c.id}">${label}</option>`;
+  }).join('');
+  if (editAppId) {
+    const a = ((STATE.students[sid]||{}).applications||{})[editAppId]||{};
+    document.getElementById('app-company').value = a.companyId||'';
+    document.getElementById('app-date').value    = a.date||'';
+    document.getElementById('app-rec').value     = a.rec||'불필요';
+    document.getElementById('app-stage').value   = a.stage||'준비중';
+    document.getElementById('app-memo').value    = a.memo||'';
+  } else {
+    document.getElementById('app-date').value  = new Date().toISOString().slice(0,10);
+    document.getElementById('app-rec').value   = '불필요';
+    document.getElementById('app-stage').value = '준비중';
+    document.getElementById('app-memo').value  = '';
+  }
+  document.getElementById('app-modal').classList.add('open');
+}
+
+function renderStudents() {
+  const q=(document.getElementById('st-search').value||'').toLowerCase();
+  const df=document.getElementById('st-dept-f').value, cf=document.getElementById('st-class-f').value;
+  const rf=document.getElementById('st-rec-f').value,  sf=document.getElementById('st-status-f').value;
+  let list=objToArr(STATE.students).filter(s=>(!q||s.name.toLowerCase().includes(q)||(s.number||'').includes(q))&&(!df||s.dept===df)&&(!cf||s.classInfo===cf)&&(!rf||s.recommendation===rf)&&(!sf||s.status===sf));
+  list.sort((a,b)=>{const ca=a.classInfo||'',cb=b.classInfo||'';const pa=ca.match(/(\d+)-(\d+)/),pb=cb.match(/(\d+)-(\d+)/);if(pa&&pb){const d=+pa[1]-+pb[1]||+pa[2]-+pb[2];if(d!==0)return d;}else if(ca!==cb)return ca.localeCompare(cb,'ko');return(a.name||'').localeCompare(b.name||'','ko');});
+  const tbody=document.getElementById('student-tbody');
+  if(!list.length){tbody.innerHTML=`<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">학생 없음</div></div></td></tr>`;return;}
+  // users에서 이메일 매핑 (학번 앞자리 매칭)
+  const userByNumber = {};
+  objToArr(STATE.users).forEach(u => {
+    const local = (u.email||'').split('@')[0];
+    if(u.number) userByNumber[String(u.number)] = u;
+    if(/^\d+$/.test(local)) userByNumber[local] = u;
+  });
+  tbody.innerHTML=list.map(s=>{
+    const chips=(s.companyIds||[]).map(cid=>{const c=STATE.companies[cid];return c?`<span class="chip">${c.name}</span>`:''}).join('')+(s.manualCompanies||[]).map(n=>`<span class="chip" style="border-color:rgba(251,191,36,.3);color:#fbbf24;">${n}</span>`).join('');
+    const regUser = userByNumber[String(s.number||'')];
+    const regBadge = regUser ? `<span class="badge badge-green">가입</span>` : `<span class="badge badge-gray">미가입</span>`;
+    return`<tr style="cursor:pointer;" onclick="openStudentDetail('${s.id}')">
+      <td style="font-family:var(--mono);font-size:11px;">${s.number||'-'}</td>
+      <td style="font-weight:600;">${s.name}</td>
+      <td>${s.dept||''} ${s.classInfo||''}</td>
+      <td><div class="chip-wrap">${chips||'<span style="color:var(--text3);font-size:11px;">없음</span>'}</div></td>
+      <td>${recBadge(s.recommendation)}</td>
+      <td>${stageBadge(s.status)}</td>
+      <td>${regBadge}</td>
+      <td onclick="event.stopPropagation();"><div style="display:flex;gap:3px;">
+        <button class="btn btn-secondary btn-sm" onclick="openStudentModal('${s.id}')">수정</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteStudent('${s.id}')">삭제</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateFilters() {
+  const sts=objToArr(STATE.students);
+  const depts=[...new Set(sts.map(s=>s.dept).filter(Boolean))].sort();
+  const classes=[...new Set(sts.map(s=>s.classInfo).filter(Boolean))].sort((a,b)=>{const pa=a.match(/(\d+)-(\d+)/),pb=b.match(/(\d+)-(\d+)/);if(pa&&pb){return pa[1]!==pb[1]?+pa[1]-+pb[1]:+pa[2]-+pb[2];}return a.localeCompare(b,'ko');});
+  const dSel=document.getElementById('st-dept-f'), cSel=document.getElementById('st-class-f');
+  const dv=dSel.value, cv=cSel.value;
+  dSel.innerHTML='<option value="">전체 학과</option>'+depts.map(d=>`<option value="${d}">${d}</option>`).join('');
+  cSel.innerHTML='<option value="">전체 반</option>'+classes.map(c=>`<option value="${c}">${c}</option>`).join('');
+  dSel.value=dv; cSel.value=cv;
+}
+
+// ─────────────────────────────────────────────────────
+//  명렬표 업로드
+// ─────────────────────────────────────────────────────
+let _importRows = [];
+function openImportModal() { _importRows=[]; document.getElementById('import-preview').style.display='none'; document.getElementById('import-progress').textContent=''; document.getElementById('import-modal').classList.add('open'); }
+function handleImportDrop(e){e.preventDefault();document.getElementById('import-drop').classList.remove('dragover');const f=e.dataTransfer.files[0];if(f)parseImportFile(f);}
+function handleImportFile(e){const f=e.target.files[0];if(f)parseImportFile(f);}
+
+function parseImportFile(file) {
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const text=e.target.result;
+    // CSV 파싱 (간단한 버전)
+    const lines=text.split(/\r?\n/).filter(l=>l.trim());
+    if(lines.length<2){showToast('데이터가 부족합니다','warning');return;}
+    const headers=lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+    // 컬럼 인덱스 찾기
+    const findCol=(keys)=>{for(const k of keys){const i=headers.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
+    const iNum =findCol(['학번','번호']);
+    const iName=findCol(['이름','성명']);
+    const iDept=findCol(['학과','과']);
+    const iClass=findCol(['반','학년반','학년/반']);
+    if(iName<0){showToast('이름 컬럼을 찾을 수 없습니다','warning');return;}
+    _importRows=lines.slice(1).map(line=>{
+      const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+      return{number:iNum>=0?cols[iNum]:'',name:cols[iName]||'',dept:iDept>=0?cols[iDept]:'',classInfo:iClass>=0?cols[iClass]:''};
+    }).filter(r=>r.name);
+    // 미리보기 테이블
+    document.getElementById('import-preview-label').textContent=`총 ${_importRows.length}명 파싱됨. 확인 후 등록하세요.`;
+    document.getElementById('import-table-wrap').innerHTML=`<table><thead><tr><th>학번</th><th>이름</th><th>학과</th><th>학년/반</th></tr></thead><tbody>${_importRows.slice(0,20).map(r=>`<tr><td style="font-family:var(--mono);font-size:11px;">${r.number}</td><td>${r.name}</td><td>${r.dept}</td><td>${r.classInfo}</td></tr>`).join('')}${_importRows.length>20?`<tr><td colspan="4" style="text-align:center;color:var(--text3);font-size:11px;">... 외 ${_importRows.length-20}건</td></tr>`:''}</tbody></table>`;
+    document.getElementById('import-preview').style.display='block';
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+async function confirmImport() {
+  if(!_importRows.length){showToast('데이터 없음','warning');return;}
+  const dup=document.getElementById('import-dup-policy').value;
+  const prog=document.getElementById('import-progress');
+  let done=0,skip=0;
+  // 기존 학번 목록
+  const existingByNum={};
+  objToArr(STATE.students).forEach(s=>{if(s.number)existingByNum[String(s.number)]=s.id;});
+  for(const row of _importRows){
+    const existingId=existingByNum[String(row.number||'')];
+    if(existingId && dup==='skip'){skip++;continue;}
+    const id=existingId||uid();
+    const existing=STATE.students[id]||{};
+    await db.ref('/students/'+id).update({name:row.name,number:row.number||'',dept:row.dept||'',classInfo:row.classInfo||'',recommendation:existing.recommendation||'미신청',status:existing.status||'준비중',applications:existing.applications||{},updatedAt:new Date().toISOString()});
+    done++;
+    prog.textContent=`처리 중... ${done+skip}/${_importRows.length}`;
+  }
+  closeModal('import-modal');
+  showToast(`등록 완료: ${done}명 (건너뜀: ${skip}명)`,'success');
+}
+
+// ─────────────────────────────────────────────────────
+//  SCHEDULE
+// ─────────────────────────────────────────────────────
+function openScheduleModal(id){
+  document.getElementById('sc-id').value=id||'';
+  const s=id?(STATE.schedules[id]||{}):{};
+  const cos=objToArr(STATE.companies);
+  document.getElementById('sc-company').innerHTML='<option value="">-- 기업 --</option>'+cos.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  const fields={'sc-title':s.title||'','sc-company':s.companyId||'','sc-date':s.date||'','sc-type':s.type||'서류마감','sc-memo':s.memo||''};
+  Object.entries(fields).forEach(([k,vl])=>{const el=document.getElementById(k);if(el)el.value=vl;});
+  document.getElementById('sc-modal').classList.add('open');
+}
+async function saveSchedule(){
+  const title=document.getElementById('sc-title').value.trim(), date=document.getElementById('sc-date').value;
+  if(!title||!date){showToast('제목과 날짜 입력 필요','warning');return;}
+  const id=document.getElementById('sc-id').value||uid();
+  setSyncing(); await db.ref('/schedules/'+id).set({title,date,companyId:v('sc-company'),type:v('sc-type'),memo:v('sc-memo')});
+  closeModal('sc-modal'); showToast('일정 저장','success');
+}
+async function deleteSchedule(id){await db.ref('/schedules/'+id).remove();showToast('삭제','info');}
+function renderSchedule(){
+  const list=objToArr(STATE.schedules).sort((a,b)=>a.date.localeCompare(b.date));
+  const today=new Date().toISOString().slice(0,10);
+  document.getElementById('sched-list').innerHTML=list.length===0?'<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-text">일정 없음</div></div>':'<div>'+list.map(s=>{const co=STATE.companies[s.companyId],isPast=s.date<today;return`<div class="timeline-item"><div class="timeline-date">${s.date}</div><div class="timeline-dot" style="background:${isPast?'var(--text3)':typeColor(s.type)};"></div><div class="timeline-content"><div class="timeline-title" style="${isPast?'color:var(--text2);':''}">${s.title}</div><div class="timeline-sub">${co?co.name+' · ':''}${s.type}${s.memo?' — '+s.memo:''}</div></div><div style="display:flex;gap:3px;"><button class="btn btn-icon btn-secondary btn-sm" onclick="openScheduleModal('${s.id}')">✏</button><button class="btn btn-icon btn-danger btn-sm" onclick="deleteSchedule('${s.id}')">✕</button></div></div>`;}).join('')+'</div>';
+  const ym=new Date().toISOString().slice(0,7), tm=list.filter(s=>s.date.startsWith(ym));
+  document.getElementById('this-month').innerHTML=tm.length===0?'<div class="empty-state"><div class="empty-icon">🗓</div><div class="empty-text">없음</div></div>':'<div>'+tm.map(s=>`<div class="timeline-item"><div class="timeline-date">${s.date.slice(5)}</div><div class="timeline-dot" style="background:${typeColor(s.type)};"></div><div class="timeline-content"><div class="timeline-title" style="font-size:12px;">${s.title}</div><div class="timeline-sub" style="font-size:11px;">${s.type}</div></div></div>`).join('')+'</div>';
+  const now=new Date(), strip=document.getElementById('cal-strip'), schedDates=new Set(list.map(s=>s.date)), days=[];
+  for(let i=-2;i<=28;i++){const d=new Date(now);d.setDate(d.getDate()+i);days.push(d);}
+  strip.innerHTML=days.map(d=>{const ds=d.toISOString().slice(0,10),isToday=ds===now.toISOString().slice(0,10),hasEvent=schedDates.has(ds),wd=['일','월','화','수','목','금','토'][d.getDay()];return`<div class="cal-day ${isToday?'today':hasEvent?'has-event':''}"><div class="cal-day-wd">${wd}</div><div class="cal-day-num">${d.getDate()}</div>${hasEvent?'<div class="cal-day-dot"></div>':'<div style="height:5px;"></div>'}</div>`;}).join('');
+}
+
+// ─────────────────────────────────────────────────────
+//  BOARD (게시판) — 작성자 실명 표시
+// ─────────────────────────────────────────────────────
+let _currentPostId = null;
+function renderBoard() {
+  const filter=document.getElementById('board-filter').value;
+  let posts=objToArr(STATE.posts).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  if(filter==='unanswered') posts=posts.filter(p=>!p.answered);
+  if(filter==='answered')   posts=posts.filter(p=>p.answered);
+  document.getElementById('board-cnt').textContent=posts.length+'건';
+  document.getElementById('board-list').innerHTML=posts.length===0
+    ? '<div class="empty-state"><div class="empty-icon">💬</div><div class="empty-text">게시글 없음</div></div>'
+    : '<div class="post-list">'+posts.map((p,i)=>{
+        const replyCount=objToArr(p.comments).length;
+        const isTeacher = ['master','employment_teacher','general_teacher'].includes(p.authorRole);
+        const authorDisplay = (p.authorName || (p.authorEmail||'').split('@')[0]);
+        const authorHtml = isTeacher
+          ? `<span style="color:var(--accent2);">👨‍🏫 ${authorDisplay}</span>`
+          : authorDisplay;
+        return`<div class="post-row" onclick="openPostDetail('${p.id}')">
+          <div class="post-num">${posts.length-i}</div>
+          <div class="post-title">${p.title||'(제목없음)'}${replyCount?`<span class="reply-cnt">[${replyCount}]</span>`:''}</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${p.answered?'<span class="badge badge-green">답변완료</span>':'<span class="badge badge-yellow">미답변</span>'}
+            <div class="post-meta">${authorHtml} · ${(p.createdAt||'').slice(0,10)}</div>
+          </div>
+        </div>`;
+      }).join('')+'</div>';
+}
+
+function openPostDetail(id) {
+  const p=STATE.posts[id]; if(!p) return;
+  _currentPostId=id;
+  document.getElementById('board-card').style.display='none';
+  document.getElementById('post-detail-wrap').style.display='block';
+  document.getElementById('pd-title').textContent=p.title||'(제목없음)';
+  document.getElementById('pd-status-badge').innerHTML=p.answered?'<span class="badge badge-green">답변완료</span>':'<span class="badge badge-yellow">미답변</span>';
+  const authorDisplay = p.authorName || (p.authorEmail||'').split('@')[0];
+  document.getElementById('pd-meta').textContent=`${authorDisplay} · ${(p.createdAt||'').slice(0,16).replace('T',' ')}`;
+  document.getElementById('pd-body').textContent=p.content||'';
+  const comments=objToArr(p.comments||{}).sort((a,b)=>new Date(a.createdAt||0)-new Date(b.createdAt||0));
+  document.getElementById('pd-reply-cnt').textContent=comments.length;
+  document.getElementById('pd-comments').innerHTML=comments.length===0?'<div style="font-size:12px;color:var(--text3);padding:8px 0;">댓글 없음</div>':comments.map(c=>{
+    const cAuthor = c.authorName || (c.authorEmail||'').split('@')[0];
+    const isAdmin = ['master','employment_teacher','general_teacher'].includes(c.role);
+    return`<div class="comment-item" style="${isAdmin?'border-color:rgba(37,99,235,.3);background:rgba(37,99,235,.05);':''}">
+      <div class="comment-author">${isAdmin?'👨‍🏫 ':''} ${cAuthor}${isAdmin?' (교사)':''}</div>
+      <div class="comment-body">${c.content||''}</div>
+      <div class="comment-meta">${(c.createdAt||'').slice(0,16).replace('T',' ')} <button class="btn btn-danger btn-sm" style="margin-left:8px;" onclick="deleteComment('${id}','${c.id}')">삭제</button></div>
+    </div>`;
+  }).join('');
+  document.getElementById('btn-mark-answered').textContent=p.answered?'✓ 답변완료 취소':'✓ 답변완료 처리';
+  document.getElementById('btn-mark-answered').className=p.answered?'btn btn-secondary':'btn btn-success';
+}
+
+function closePostDetail(){
+  document.getElementById('board-card').style.display='';
+  document.getElementById('post-detail-wrap').style.display='none';
+  document.getElementById('admin-reply').value='';
+  _currentPostId=null;
+}
+
+async function submitAdminReply() {
+  if(!_currentPostId){return;}
+  const content=document.getElementById('admin-reply').value.trim();
+  if(!content){showToast('답변 내용 입력 필요','warning');return;}
+  const id=uid();
+  await db.ref('/posts/'+_currentPostId+'/comments/'+id).set({
+    id, content,
+    authorName:  _currentUser.name||'교사',
+    authorEmail: _currentUser.email||'',
+    role:        _currentUser.role||'general_teacher',
+    createdAt:   new Date().toISOString()
+  });
+  await db.ref('/posts/'+_currentPostId).update({answered:true,answeredAt:new Date().toISOString()});
+  document.getElementById('admin-reply').value='';
+  showToast('답변 등록','success');
+}
+
+async function toggleAnswered() {
+  if(!_currentPostId) return;
+  const p=STATE.posts[_currentPostId];
+  await db.ref('/posts/'+_currentPostId).update({answered:!p.answered});
+  showToast((!p.answered?'답변완료':'미답변')+'으로 변경','info');
+}
+
+async function deleteComment(postId,commentId) {
+  await db.ref('/posts/'+postId+'/comments/'+commentId).remove();
+  openPostDetail(postId);
+  showToast('댓글 삭제','info');
+}
+
+async function deletePost(id) {
+  if(!confirm('게시글을 삭제할까요?'))return;
+  await db.ref('/posts/'+id).remove();
+  closePostDetail();
+  showToast('게시글 삭제','info');
+}
+
+// ─────────────────────────────────────────────────────
+//  USERS (사용자 탭) — 이름 표시, 클릭 시 상세
+// ─────────────────────────────────────────────────────
+function renderUsers() {
+  const q=(document.getElementById('usr-search').value||'').toLowerCase();
+  const rf=document.getElementById('usr-role-f').value;
+  let list=objToArr(STATE.users).filter(u=>(!q||(u.name||'').toLowerCase().includes(q)||(u.email||'').toLowerCase().includes(q))&&(!rf||u.role===rf));
+  list.sort((a,b)=>{const ro={master:0,employment_teacher:1,general_teacher:2,student:3,pending:4};return(ro[a.role]??9)-(ro[b.role]??9)||(a.name||'').localeCompare(b.name||'','ko');});
+  const roleColors={master:'badge-purple',employment_teacher:'badge-blue',general_teacher:'badge-teal',student:'badge-green',pending:'badge-yellow'};
+  const roleLabels={master:'마스터',employment_teacher:'취업담당',general_teacher:'교사',student:'학생',pending:'승인대기'};
+  const avatarColors=['#2563eb','#059669','#d97706','#7c3aed','#dc2626'];
+  document.getElementById('user-list').innerHTML=list.length===0?'<div class="empty-state"><div class="empty-icon">👤</div><div class="empty-text">사용자 없음</div></div>':list.map((u,i)=>{
+    const initials=(u.name||'?').charAt(0);
+    const color=avatarColors[i%avatarColors.length];
+    return`<div class="user-row" onclick="openUserDetail('${u.uid||u.id}')">
+      <div class="user-avatar" style="background:${color};">${initials}</div>
+      <div class="user-info">
+        <div class="user-name">${u.name||'(이름없음)'}</div>
+        <div class="user-email">${u.email||''} ${u.number?'· '+u.number:''}</div>
+      </div>
+      <div style="display:flex;gap:5px;align-items:center;">
+        <span class="badge ${roleColors[u.role]||'badge-gray'}">${roleLabels[u.role]||u.role}</span>
+        ${u.role==='pending'?`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();approveUser('${u.uid||u.id}')">승인</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function approveUser(uid) {
+  const roles=[{v:'student',l:'학생'},{v:'general_teacher',l:'교사'},{v:'employment_teacher',l:'취업담당교사'},{v:'master',l:'마스터'}];
+  const choice=prompt('역할을 입력하세요:\n'+roles.map(r=>r.v+' = '+r.l).join('\n'));
+  if(!choice||!roles.find(r=>r.v===choice)){showToast('유효하지 않은 역할','warning');return;}
+  await db.ref('users/'+uid).update({role:choice});
+  showToast('역할 부여 완료','success');
+}
+
+async function changeUserRole(uid, currentRole) {
+  const roles=['student','general_teacher','employment_teacher','master'];
+  const choice=prompt('새 역할:\n'+roles.join(' / ')+'\n\n현재: '+currentRole);
+  if(!choice||!roles.includes(choice))return;
+  await db.ref('users/'+uid).update({role:choice});
+  showToast('역할 변경','success');
+}
+
+function openUserDetail(uid) {
+  const u=STATE.users[uid]; if(!u) return;
+  document.getElementById('upd-name').textContent=u.name||'(이름없음)';
+  document.getElementById('upd-email').textContent=u.email||'';
+  // 해당 학생 매핑
+  const userByNum={};
+  objToArr(STATE.students).forEach(s=>{if(s.number)userByNum[String(s.number)]=s;});
+  const local=(u.email||'').split('@')[0];
+  const linkedSt=u.number?userByNum[String(u.number)]:(/^\d+$/.test(local)?userByNum[local]:null);
+  // 게시글
+  const posts=objToArr(STATE.posts).filter(p=>p.authorEmail===u.email||p.authorUid===uid);
+  // 댓글
+  const allComments=[];
+  objToArr(STATE.posts).forEach(p=>objToArr(p.comments||{}).forEach(c=>{if(c.authorEmail===u.email||c.authorUid===uid)allComments.push({...c,postTitle:p.title});}));
+  const roleLabels={master:'마스터',employment_teacher:'취업담당',general_teacher:'교사',student:'학생',pending:'승인대기'};
+  document.getElementById('upd-body').innerHTML=`
+    <div class="detail-section">
+      <div class="detail-section-title">회원 정보</div>
+      <div class="detail-row"><span class="detail-key">이름</span><span>${u.name||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">이메일</span><span style="font-family:var(--mono);font-size:12px;">${u.email||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">역할</span><span>${roleLabels[u.role]||u.role}</span></div>
+      ${u.grade?`<div class="detail-row"><span class="detail-key">학년/반</span><span>${u.grade}학년 ${u.class||'-'}반 ${u.number||''}번</span></div>`:''}
+      ${u.dept?`<div class="detail-row"><span class="detail-key">학과</span><span>${u.dept}</span></div>`:''}
+      <div class="detail-row"><span class="detail-key">가입일</span><span style="font-family:var(--mono);font-size:12px;">${(u.joinedAt||'').slice(0,10)}</span></div>
+      <div style="margin-top:10px;">
+        <button class="btn btn-secondary btn-sm" onclick="changeUserRole('${uid}','${u.role}')">역할 변경</button>
+      </div>
+    </div>
+    ${linkedSt?`
+    <div class="detail-section">
+      <div class="detail-section-title">연결된 학생 기록</div>
+      <div class="detail-row"><span class="detail-key">학번</span><span>${linkedSt.number||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">상태</span>${stageBadge(linkedSt.status)}</div>
+      <div class="detail-row"><span class="detail-key">추천서</span>${recBadge(linkedSt.recommendation)}</div>
+      ${(linkedSt.companyIds||[]).length?`<div class="detail-row"><span class="detail-key">지원 기업</span><span>${(linkedSt.companyIds||[]).map(cid=>{const c=STATE.companies[cid];return c?c.name:''}).filter(Boolean).join(', ')}</span></div>`:''}
+      ${(linkedSt.manualCompanies||[]).length?`<div class="detail-row"><span class="detail-key">수기 기업</span><span>${(linkedSt.manualCompanies||[]).join(', ')}</span></div>`:''}
+    </div>`:''}
+    <div class="detail-section">
+      <div class="detail-section-title">작성 게시글 (${posts.length}건)</div>
+      ${posts.length===0?'<div style="font-size:12px;color:var(--text3);">없음</div>':posts.map(p=>`<div style="padding:6px 0;border-bottom:1px solid rgba(48,54,61,.3);font-size:13px;cursor:pointer;" onclick="closeUserPanel();showPage('board');setTimeout(()=>openPostDetail('${p.id}'),200);">${p.title||'(제목없음)'} <span style="font-size:11px;color:var(--text3);">${(p.createdAt||'').slice(0,10)}</span></div>`).join('')}
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">작성 댓글 (${allComments.length}건)</div>
+      ${allComments.length===0?'<div style="font-size:12px;color:var(--text3);">없음</div>':allComments.map(c=>`<div style="padding:6px 0;border-bottom:1px solid rgba(48,54,61,.3);font-size:12px;color:var(--text2);">└ ${c.postTitle||''}<br><span style="color:var(--text);">${(c.content||'').slice(0,60)}${c.content&&c.content.length>60?'...':''}</span></div>`).join('')}
+    </div>
+  `;
+  document.getElementById('usr-overlay').classList.add('open');
+  document.getElementById('usr-panel').classList.add('open');
+}
+function closeUserPanel(){document.getElementById('usr-overlay').classList.remove('open');document.getElementById('usr-panel').classList.remove('open');}
+
+// ─────────────────────────────────────────────────────
+//  DETAIL PANELS
+// ─────────────────────────────────────────────────────
+function openCoDetail(id){
+  const c=STATE.companies[id]; if(!c) return;
+  document.getElementById('dp-name').textContent=c.name;
+  document.getElementById('dp-type').textContent=(c.type||'')+(c.job?' · '+c.job:'');
+  document.getElementById('dp-edit').onclick=()=>{closeCoPanel();openCompanyModal(id);};
+  const sts=objToArr(STATE.students).filter(s=>(s.companyIds||[]).includes(id)||objToArr(s.applications).some(a=>a.companyId===id));
+  document.getElementById('dp-body').innerHTML=`
+    <div class="detail-section"><div class="detail-section-title">기본 정보</div>
+      <div class="detail-row"><span class="detail-key">접수 기간</span><span style="font-family:var(--mono);font-size:11px;">${c.startDate||'-'} ~ ${c.endDate||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">채용 인원</span><span>${c.headcount?c.headcount+'명':'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">접수 방법</span><span>${c.applyMethod||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">상태</span>${statusBadge(c.status)}</div>
+      ${c.url?`<div class="detail-row"><span class="detail-key">공고</span><a href="${c.url}" target="_blank" style="color:var(--accent2);">바로가기↗</a></div>`:''}
+    </div>
+    ${c.process?`<div class="detail-section"><div class="detail-section-title">전형 절차</div><div style="font-size:13px;color:var(--text2);line-height:1.8;">${c.process.replace(/\n/g,'<br>')}</div></div>`:''}
+    ${c.memo?`<div class="detail-section"><div class="detail-section-title">메모</div><div style="font-size:13px;color:var(--text2);">${c.memo}</div></div>`:''}
+    <div class="detail-section"><div class="detail-section-title">지원 학생 (${sts.length}명)</div>
+      ${sts.length===0?'<div style="font-size:12px;color:var(--text3);">없음</div>':sts.map(s=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(48,54,61,.4);"><div><div style="font-weight:600;font-size:13px;">${s.name} <span style="color:var(--text3);font-size:11px;">${s.number||''}</span></div><div style="font-size:11px;color:var(--text2);">${s.dept||''}</div></div>${stageBadge(s.status)}</div>`).join('')}
+    </div>`;
+  document.getElementById('co-overlay').classList.add('open');
+  document.getElementById('co-panel').classList.add('open');
+}
+function closeCoPanel(){document.getElementById('co-overlay').classList.remove('open');document.getElementById('co-panel').classList.remove('open');}
+
+function openStudentDetail(id){
+  const s=STATE.students[id]; if(!s) return;
+  document.getElementById('sdp-name').textContent=s.name;
+  document.getElementById('sdp-sub').textContent=`${s.number||''} · ${s.dept||''} ${s.classInfo||''}`;
+  document.getElementById('sdp-edit').onclick=()=>{closeSdPanel();openStudentModal(id);};
+  document.getElementById('sdp-add').onclick=()=>openApplicationModal(id);
+  const apps=objToArr(s.applications||{}).sort((a,b)=>new Date(b.createdAt||0)-new Date(a.createdAt||0));
+  document.getElementById('sdp-body').innerHTML=`
+    <div class="detail-section"><div class="detail-section-title">학생 정보</div>
+      <div class="detail-row"><span class="detail-key">학과/반</span><span>${s.dept||'-'} / ${s.classInfo||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">연락처</span><span style="font-family:var(--mono);">${s.phone||'-'}</span></div>
+      <div class="detail-row"><span class="detail-key">추천서</span>${recBadge(s.recommendation)}</div>
+      <div class="detail-row"><span class="detail-key">현황</span>${stageBadge(s.status)}</div>
+      ${s.memo?`<div class="detail-row"><span class="detail-key">메모</span><span style="color:var(--text2);">${s.memo}</span></div>`:''}
+    </div>
+    <div class="detail-section"><div class="detail-section-title">지원 내역 (${apps.length}건)</div>
+      ${(s.manualCompanies||[]).length>0?`<div style="margin-bottom:9px;"><div style="font-size:11px;color:var(--text3);margin-bottom:5px;">수기 입력 기업</div><div style="display:flex;flex-wrap:wrap;gap:4px;">${(s.manualCompanies||[]).map(n=>`<span class="badge badge-yellow">${n}</span>`).join('')}</div></div>`:''}
+      ${apps.length===0?'<div style="font-size:12px;color:var(--text3);padding:7px 0;">없음. [+ 지원 추가] 클릭</div>':apps.map(a=>{
+        const co=STATE.companies[a.companyId];
+        const coLabel = co ? (co.job ? `${co.name}(${co.job})` : co.name) : '(삭제된 기업)';
+        return`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:7px;padding:11px;margin-bottom:7px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px;">
+            <!-- ★ 기업명 클릭 → 수정 모달 -->
+            <div style="font-weight:700;font-size:14px;cursor:pointer;color:var(--accent2);text-decoration:underline;"
+                 onclick="openApplicationModal('${id}','${a.id}')">${coLabel}</div>
+            <div style="display:flex;gap:4px;">${stageBadge(a.stage)}<button class="btn btn-danger btn-sm" onclick="deleteApplication('${id}','${a.id}')">✕</button></div>
+          </div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8;">
+            지원일: <span style="font-family:var(--mono);">${a.date||'-'}</span><br>
+            추천서: ${recBadge(a.rec)}
+            ${a.memo?`<br><span style="color:var(--text);">${a.memo}</span>`:''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  document.getElementById('sd-overlay').classList.add('open');
+  document.getElementById('sd-panel').classList.add('open');
+}
+function closeSdPanel(){document.getElementById('sd-overlay').classList.remove('open');document.getElementById('sd-panel').classList.remove('open');}
+
+// ─────────────────────────────────────────────────────
+//  EXPORT CSV
+// ─────────────────────────────────────────────────────
+function exportCSV(){
+  const sts=objToArr(STATE.students);
+  const rows=[['학번','이름','학과','학년반','연락처','추천서','지원기업','현황','메모']];
+  sts.forEach(s=>{const cos=(s.companyIds||[]).map(cid=>{const c=STATE.companies[cid];return c?c.name:''}).filter(Boolean).join('/');rows.push([s.number||'',s.name,s.dept||'',s.classInfo||'',s.phone||'',s.recommendation||'',cos,s.status||'',s.memo||'']);});
+  const csv='\uFEFF'+rows.map(r=>r.map(vl=>'"'+String(vl).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=`학생지원현황_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click(); showToast('CSV 내보내기','success');
+}
+
+// ─────────────────────────────────────────────────────
+//  COMPANY TAB + MANUAL
+// ─────────────────────────────────────────────────────
+function switchCompanyTab(tab){
+  const isReg=tab==='registered';
+  document.getElementById('panel-registered').style.display=isReg?'':'none';
+  document.getElementById('panel-manual').style.display=isReg?'none':'';
+  document.getElementById('tab-registered').style.cssText=`flex:1;padding:6px;border:none;background:${isReg?'var(--accent)':'var(--surface2)'};color:${isReg?'#fff':'var(--text2)'};font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;`;
+  document.getElementById('tab-manual').style.cssText=`flex:1;padding:6px;border:none;background:${isReg?'var(--surface2)':'var(--accent)'};color:${isReg?'var(--text2)':'#fff'};font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;`;
+}
+function renderManualTags(){const wrap=document.getElementById('st-manual-tags');wrap.innerHTML=(window._manualCos||[]).map((name,i)=>`<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:var(--surface3);border:1px solid var(--border2);border-radius:4px;font-size:12px;">${name}<button type="button" onclick="removeManualCo(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:13px;padding:0;line-height:1;">×</button></span>`).join('');}
+function removeManualCo(i){window._manualCos.splice(i,1);renderManualTags();}
+document.addEventListener('DOMContentLoaded',()=>{const inp=document.getElementById('st-co-manual');if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();const val=inp.value.trim().replace(/,$/,'').trim();if(val&&!(window._manualCos||[]).includes(val)){if(!window._manualCos)window._manualCos=[];window._manualCos.push(val);renderManualTags();}inp.value='';}});});
+
+// ─────────────────────────────────────────────────────
+//  HELPERS
+// ─────────────────────────────────────────────────────
+function v(id){const el=document.getElementById(id);return el?el.value:'';}
+function typeBadge(t){return{공기업:'badge-blue',대기업:'badge-purple',중견기업:'badge-yellow',중소기업:'badge-green',기타:'badge-gray'}[t]||'badge-gray';}
+function statusBadge(s){const m={접수중:'badge-green',접수예정:'badge-blue',접수마감:'badge-red'};return`<span class="badge ${m[s]||'badge-gray'}">${s||'-'}</span>`;}
+function stageBadge(s){const m={최종합격:'badge-green',합격:'badge-green',면접전형:'badge-purple',필기전형:'badge-yellow',서류접수:'badge-blue',불합격:'badge-red',준비중:'badge-gray'};return`<span class="badge ${m[s]||'badge-gray'}">${s||'-'}</span>`;}
+function recBadge(s){const m={발급완료:'badge-green',신청:'badge-yellow',미신청:'badge-gray',불필요:'badge-gray'};return`<span class="badge ${m[s]||'badge-gray'}">${s||'-'}</span>`;}
+function typeColor(t){return{서류마감:'#f87171',필기시험:'#fbbf24',면접:'#a78bfa',합격발표:'#4ade80',기타:'#94a3b8'}[t]||'#94a3b8';}
+function showToast(msg,type='info'){const wrap=document.getElementById('toast-wrap');const el=document.createElement('div');el.className=`toast ${type}`;el.innerHTML=`<span>${{success:'✅',info:'ℹ️',warning:'⚠️'}[type]||'ℹ️'}</span><span>${msg}</span>`;wrap.appendChild(el);setTimeout(()=>el.remove(),3000);}
+document.querySelectorAll('.modal-overlay').forEach(el=>{el.addEventListener('click',e=>{if(e.target===el)el.classList.remove('open');});});
+</script>
+</body>
+</html>

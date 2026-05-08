@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>취업 지원 관리 시스템 — 로그인</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://unpkg.com/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+  :root{--bg:#060a10;--surface:#0d1420;--surface2:#111c2e;--border:#1e2d45;--border2:#243550;--accent:#1d6de5;--accent2:#3b82f6;--accent-glow:rgba(29,109,229,.18);--text:#e2eaf6;--text2:#7a92b4;--text3:#3d5270;--green:#4ade80;--green-bg:rgba(74,222,128,.1);--red:#f87171;--red-bg:rgba(248,113,113,.08);--yellow:#fbbf24;--yellow-bg:rgba(251,191,36,.06);--mono:'IBM Plex Mono',monospace;--sans:'Noto Sans KR',sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);min-height:100vh;font-family:var(--sans);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+  body::before{content:'';position:fixed;inset:0;z-index:0;background-image:linear-gradient(rgba(29,109,229,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(29,109,229,.04) 1px,transparent 1px);background-size:48px 48px;}
+  .orb{position:fixed;border-radius:50%;filter:blur(80px);z-index:0;pointer-events:none;}
+  .orb-1{width:500px;height:500px;background:rgba(29,109,229,.12);top:-100px;left:-100px;animation:float1 8s ease-in-out infinite;}
+  .orb-2{width:400px;height:400px;background:rgba(59,130,246,.08);bottom:-80px;right:-80px;animation:float2 10s ease-in-out infinite;}
+  @keyframes float1{0%,100%{transform:translate(0,0)}50%{transform:translate(40px,30px)}}
+  @keyframes float2{0%,100%{transform:translate(0,0)}50%{transform:translate(-30px,-20px)}}
+  .wrap{position:relative;z-index:10;width:460px;max-width:96vw;}
+  .header{text-align:center;margin-bottom:26px;}
+  .logo-box{display:inline-flex;align-items:center;justify-content:center;width:66px;height:66px;background:linear-gradient(135deg,#1d6de5,#3b82f6);border-radius:18px;font-size:28px;margin-bottom:14px;box-shadow:0 0 40px rgba(29,109,229,.4);animation:pulse 3s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 0 40px rgba(29,109,229,.4)}50%{box-shadow:0 0 64px rgba(29,109,229,.65)}}
+  .title{font-size:21px;font-weight:900;color:var(--text);letter-spacing:-.5px;margin-bottom:4px;}
+  .sub{font-size:13px;color:var(--text2);}
+  .card{background:var(--surface);border:1px solid var(--border2);border-radius:18px;padding:28px 30px;box-shadow:0 24px 60px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04);}
+  .auth-tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-bottom:22px;background:var(--surface2);border-radius:10px;padding:3px;}
+  .auth-tab{padding:8px 4px;border-radius:8px;border:none;background:transparent;color:var(--text2);font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s;text-align:center;}
+  .auth-tab.active{background:var(--accent);color:#fff;box-shadow:0 2px 8px rgba(29,109,229,.35);}
+  .tab-panel{display:none;}.tab-panel.active{display:block;}
+  .form-group{margin-bottom:12px;}
+  .form-label{display:block;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.5px;text-transform:uppercase;margin-bottom:5px;}
+  .form-input{width:100%;padding:9px 12px;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--sans);font-size:13px;transition:border .15s;outline:none;}
+  .form-input:focus{border-color:var(--accent2);box-shadow:0 0 0 3px var(--accent-glow);}
+  select.form-input{appearance:none;cursor:pointer;}
+  .form-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+  .btn-main{width:100%;padding:12px;background:linear-gradient(135deg,#1d6de5,#3b82f6);border:none;border-radius:10px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;margin-top:4px;box-shadow:0 4px 18px rgba(29,109,229,.3);}
+  .btn-main:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(29,109,229,.4);}
+  .btn-main:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .msg-box{display:none;border-radius:10px;padding:10px 13px;font-size:12px;text-align:center;margin-top:12px;line-height:1.7;}
+  .msg-box.show{display:block;}
+  .msg-box.error{background:var(--red-bg);border:1px solid rgba(248,113,113,.2);color:var(--red);animation:shake .3s ease;}
+  .msg-box.success{background:var(--green-bg);border:1px solid rgba(74,222,128,.2);color:var(--green);}
+  .msg-box.pending{background:var(--yellow-bg);border:1px solid rgba(251,191,36,.2);color:var(--yellow);}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .role-preview{display:none;background:var(--accent-glow);border:1px solid rgba(59,130,246,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text2);margin-bottom:12px;}
+  .student-extra{display:none;}
+  .domain-note{background:rgba(29,109,229,.08);border:1px solid rgba(29,109,229,.2);border-radius:10px;padding:10px 13px;font-size:12px;color:var(--text2);display:flex;align-items:flex-start;gap:8px;line-height:1.6;margin-top:12px;}
+  .domain-note strong{color:var(--accent2);}
+  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .footer{text-align:center;margin-top:16px;font-size:11px;color:var(--text3);}
+  .btn-text{background:none;border:none;color:var(--text2);font-family:var(--sans);font-size:12px;cursor:pointer;margin-top:8px;}
+  .btn-text:hover{color:var(--text);}
+  .modal-overlay{display:none;position:fixed;inset:0;z-index:500;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal{background:var(--surface);border:1px solid var(--border2);border-radius:18px;width:440px;max-width:94vw;animation:slideUp .25s ease;padding:30px;}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+  .modal-title{font-size:17px;font-weight:900;margin-bottom:6px;}
+  .modal-desc{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.7;}
+  .highlight{color:var(--accent2);font-weight:700;}
+  .btn-confirm{width:100%;margin-top:8px;padding:12px;background:linear-gradient(135deg,#1d6de5,#3b82f6);border:none;border-radius:10px;color:#fff;font-family:var(--sans);font-size:14px;font-weight:700;cursor:pointer;}
+
+  /* 단계 표시 */
+  .step-bar{display:flex;align-items:center;justify-content:center;margin-bottom:20px;}
+  .step{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--text3);transition:color .2s;}
+  .step.active{color:var(--accent2);}
+  .step.done{color:var(--green);}
+  .step-num{width:22px;height:22px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;transition:border-color .2s;}
+  .step-line{flex:1;height:1px;background:var(--border2);margin:0 8px;max-width:36px;}
+
+  /* 이메일+버튼 행 */
+  .input-btn-row{display:flex;gap:8px;}
+  .input-btn-row .form-input{flex:1;}
+  .input-btn-row .btn-sub{white-space:nowrap;padding:9px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);font-family:var(--sans);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+  .input-btn-row .btn-sub:hover{border-color:var(--accent2);color:var(--accent2);}
+  .input-btn-row .btn-sub:disabled{opacity:.45;cursor:not-allowed;}
+
+  /* 인증번호 박스 */
+  .verify-box{background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:16px;margin:10px 0;}
+  .verify-sent{font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:10px;}
+  .verify-sent strong{color:var(--accent2);}
+  .code-row{display:flex;gap:8px;}
+  .code-row input{flex:1;font-family:var(--mono);font-size:20px;font-weight:700;text-align:center;letter-spacing:6px;padding:10px;}
+  .code-row .btn-sub{padding:10px 14px;}
+  .timer{font-family:var(--mono);font-size:12px;color:var(--yellow);text-align:center;margin-top:8px;min-height:18px;}
+  .timer.expired{color:var(--red);}
+  .verified-badge{display:none;background:var(--green-bg);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--green);text-align:center;margin:10px 0;}
+  .verified-badge.show{display:block;}
+
+  /* 데모 안내 */
+  .demo-note{background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--yellow);margin-top:8px;line-height:1.7;}
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div><div class="orb orb-2"></div>
+<div class="wrap">
+  <div class="header">
+    <div class="logo-box">🏭</div>
+    <div class="title">취업 지원 관리 시스템</div>
+    <div class="sub" id="school-sub">부산기계공업고등학교</div>
+  </div>
+
+  <div class="card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">🔑 로그인</button>
+      <button class="auth-tab" onclick="switchTab('signup')">✏️ 회원가입</button>
+      <button class="auth-tab" onclick="switchTab('reset')">🔓 비밀번호 찾기</button>
+    </div>
+
+    <!-- ════════════ 로그인 탭 ════════════ -->
+    <div class="tab-panel active" id="panel-login">
+      <div class="form-group">
+        <label class="form-label">이메일</label>
+        <input type="email" class="form-input" id="li-email" placeholder="계정@bmt.hs.kr"
+               onkeydown="if(event.key==='Enter')doEmailLogin()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">비밀번호</label>
+        <input type="password" class="form-input" id="li-pw" placeholder="비밀번호"
+               onkeydown="if(event.key==='Enter')doEmailLogin()">
+      </div>
+      <button class="btn-main" id="btn-login" onclick="doEmailLogin()">로그인</button>
+      <div class="msg-box" id="li-msg"></div>
+      <div style="text-align:right;margin-top:8px;">
+        <button class="btn-text" onclick="switchTab('reset')" style="font-size:12px;color:var(--text3);">비밀번호를 잊으셨나요?</button>
+      </div>
+      <div class="domain-note" style="margin-top:10px;">
+        💡 <span><strong>@bmt.hs.kr</strong> 계정만 이용 가능합니다.<br>
+        첫 이용이라면 <strong style="color:var(--accent2);cursor:pointer;" onclick="switchTab('signup')">회원가입</strong>을 먼저 진행하세요.</span>
+      </div>
+    </div>
+
+    <!-- ════════════ 회원가입 탭 ════════════ -->
+    <div class="tab-panel" id="panel-signup">
+
+      <!-- 단계 표시 -->
+      <div class="step-bar">
+        <div class="step active" id="step1"><div class="step-num" id="sn1">1</div><span>이메일 인증</span></div>
+        <div class="step-line"></div>
+        <div class="step" id="step2"><div class="step-num" id="sn2">2</div><span>정보 입력</span></div>
+        <div class="step-line"></div>
+        <div class="step" id="step3"><div class="step-num" id="sn3">3</div><span>완료</span></div>
+      </div>
+
+      <!-- STEP 1 : 이메일 인증 -->
+      <div id="su-step1">
+        <div class="form-group">
+          <label class="form-label">이름 *</label>
+          <input type="text" class="form-input" id="su-name" placeholder="홍길동">
+        </div>
+        <div class="form-group">
+          <label class="form-label">학교 이메일 * (@bmt.hs.kr)</label>
+          <div class="input-btn-row">
+            <input type="email" class="form-input" id="su-email"
+                   placeholder="20241234@bmt.hs.kr"
+                   oninput="detectRole(); resetVerify();">
+            <button class="btn-sub" id="btn-send" onclick="sendVerifyCode()">인증번호 발송</button>
+          </div>
+        </div>
+
+        <div class="role-preview" id="role-preview"></div>
+
+        <!-- 인증번호 입력 박스 -->
+        <div class="verify-box" id="verify-box" style="display:none;">
+          <div class="verify-sent" id="verify-sent-msg"></div>
+          <div class="code-row">
+            <input type="text" class="form-input" id="vcode" maxlength="6"
+                   placeholder="000000"
+                   oninput="this.value=this.value.replace(/\D/g,'')"
+                   onkeydown="if(event.key==='Enter')checkCode()">
+            <button class="btn-sub" onclick="checkCode()">확인</button>
+          </div>
+          <div class="timer" id="vtimer"></div>
+          <div style="text-align:center;margin-top:8px;">
+            <button class="btn-text" onclick="sendVerifyCode(true)">인증번호 재발송</button>
+          </div>
+        </div>
+
+        <!-- 인증 완료 -->
+        <div class="verified-badge" id="verified-badge">✅ 이메일 인증 완료!</div>
+
+        <div class="msg-box" id="msg-s1"></div>
+        <button class="btn-main" id="btn-go-s2" onclick="goStep2()" style="display:none;margin-top:10px;">
+          다음 단계 →
+        </button>
+
+        <div class="demo-note" id="demo-note" style="display:none;">
+          ⚠️ <strong>개발 모드:</strong> 실제 이메일 발송은 Firebase Cloud Functions 연동 필요.<br>
+          현재는 브라우저 콘솔(F12)에서 인증번호를 확인하세요.
+        </div>
+      </div>
+
+      <!-- STEP 2 : 정보 입력 -->
+      <div id="su-step2" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">비밀번호 * (6자 이상)</label>
+          <input type="password" class="form-input" id="su-pw" placeholder="비밀번호">
+        </div>
+        <div class="form-group">
+          <label class="form-label">비밀번호 확인 *</label>
+          <input type="password" class="form-input" id="su-pw2" placeholder="비밀번호 확인">
+        </div>
+
+        <!-- 학생 전용 -->
+        <div class="student-extra" id="student-extra">
+          <div style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;">📌 학생 정보</div>
+          <div class="form-row3">
+            <div class="form-group"><label class="form-label">학년</label>
+              <select class="form-input" id="su-grade">
+                <option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option>
+              </select></div>
+            <div class="form-group"><label class="form-label">반</label>
+              <input type="number" class="form-input" id="su-class" min="1" max="20" placeholder="반"></div>
+            <div class="form-group"><label class="form-label">번호</label>
+              <input type="number" class="form-input" id="su-num" min="1" max="50" placeholder="번"></div>
+          </div>
+          <div class="form-group"><label class="form-label">학과</label>
+            <select class="form-input" id="su-dept">
+              <option>기계과</option><option>기계설계과</option><option>자동화기계과</option>
+              <option>메카트로닉스과</option><option>전기과</option><option>자동차과</option>
+              <option>금속재료과</option><option>냉동공조과</option><option>기타</option>
+            </select></div>
+        </div>
+
+        <div class="msg-box" id="msg-s2"></div>
+        <button class="btn-main" id="btn-signup" onclick="doSignup()">회원가입 완료</button>
+        <div style="text-align:center;margin-top:8px;">
+          <button class="btn-text" onclick="backStep()">← 이전 단계</button>
+        </div>
+      </div>
+
+    </div><!-- /panel-signup -->
+
+    <!-- ════════════ 비밀번호 찾기 탭 ════════════ -->
+    <div class="tab-panel" id="panel-reset">
+
+      <!-- STEP A : 이메일 입력 -->
+      <div id="rst-step-a">
+        <div style="text-align:center;margin-bottom:18px;">
+          <div style="font-size:32px;margin-bottom:8px;">🔓</div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px;">비밀번호 재설정</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;">가입한 이메일 주소를 입력하면<br>비밀번호 재설정 링크를 발송합니다.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">가입 이메일 (@bmt.hs.kr)</label>
+          <input type="email" class="form-input" id="rst-email" placeholder="계정@bmt.hs.kr"
+                 onkeydown="if(event.key==='Enter')sendResetEmail()">
+        </div>
+        <button class="btn-main" id="btn-reset" onclick="sendResetEmail()">재설정 메일 발송</button>
+        <div class="msg-box" id="rst-msg"></div>
+      </div>
+
+      <!-- STEP B : 발송 완료 안내 -->
+      <div id="rst-step-b" style="display:none;text-align:center;padding:8px 0;">
+        <div style="font-size:40px;margin-bottom:12px;">📬</div>
+        <div style="font-size:15px;font-weight:700;color:var(--green);margin-bottom:8px;">메일 발송 완료!</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:16px;">
+          <strong id="rst-sent-email" style="color:var(--accent2);"></strong>으로<br>
+          비밀번호 재설정 링크를 발송했습니다.<br>
+          메일함(스팸함 포함)을 확인해 주세요.<br>
+          <span style="color:var(--text3);font-size:11px;">링크 유효 시간: 1시간</span>
+        </div>
+        <button class="btn-main" style="max-width:200px;margin:0 auto;" onclick="resetBackToA()">← 다시 입력</button>
+        <div style="margin-top:10px;">
+          <button class="btn-text" onclick="switchTab('login')">로그인으로 돌아가기</button>
+        </div>
+      </div>
+
+    </div><!-- /panel-reset -->
+
+    <!-- 승인 대기 -->
+    <div class="msg-box pending" id="pending-box" style="margin-top:14px;">
+      ⏳ <strong>승인 대기 중</strong>입니다.<br>관리자가 역할을 부여하면 이용할 수 있습니다.<br>
+      <button class="btn-text" onclick="doLogout()">다른 계정으로 로그인</button>
+    </div>
+  </div>
+
+  <div class="footer">© 2025 부산기계공업고등학교 취업지원부</div>
+</div>
+
+<!-- 진급 모달 -->
+<div class="modal-overlay" id="promotion-modal">
+  <div class="modal">
+    <div class="modal-title">🎉 새 학년도 진급 확인</div>
+    <div class="modal-desc">매년 3월 1일 기준으로 학년이 올라갑니다.<br>변경된 <span class="highlight">학년·반·번호</span>를 입력해 주세요.</div>
+    <div class="form-row3" style="margin-bottom:12px;">
+      <div class="form-group"><label class="form-label">학년</label>
+        <select class="form-input" id="pm-grade"><option value="1">1학년</option><option value="2">2학년</option><option value="3">3학년</option></select></div>
+      <div class="form-group"><label class="form-label">반</label>
+        <input type="number" class="form-input" id="pm-class" min="1" max="20" placeholder="반"></div>
+      <div class="form-group"><label class="form-label">번호</label>
+        <input type="number" class="form-input" id="pm-number" min="1" max="50" placeholder="번"></div>
+    </div>
+    <div class="form-group"><label class="form-label">학과</label>
+      <select class="form-input" id="pm-dept">
+        <option>기계과</option><option>기계설계과</option><option>자동화기계과</option>
+        <option>메카트로닉스과</option><option>전기과</option><option>자동차과</option>
+        <option>금속재료과</option><option>냉동공조과</option><option>기타</option>
+      </select></div>
+    <button class="btn-confirm" onclick="savePromotion()">확인 — 저장하고 시작하기</button>
+  </div>
+</div>
+
+<script>
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.database();
+document.getElementById('school-sub').textContent = SCHOOL_NAME;
+
+// ── 상태 ──
+let _code = null, _codeEmail = null, _timer = null, _secs = 0, _verified = false;
+
+// ── 탭 전환 ──
+function switchTab(tab) {
+  const tabs = ['login','signup','reset'];
+  document.querySelectorAll('.auth-tab').forEach((el,i) =>
+    el.classList.toggle('active', tabs[i]===tab));
+  document.getElementById('panel-login').classList.toggle('active',  tab==='login');
+  document.getElementById('panel-signup').classList.toggle('active', tab==='signup');
+  document.getElementById('panel-reset').classList.toggle('active',  tab==='reset');
+  document.getElementById('pending-box').style.display = 'none';
+  // 비밀번호 찾기 탭 열 때 초기화
+  if(tab==='reset') resetBackToA();
+}
+
+// ── 역할 감지 ──
+function detectRole() {
+  const email = document.getElementById('su-email').value.trim();
+  const local = email.split('@')[0];
+  const ok = email.endsWith('@' + ALLOWED_DOMAIN);
+  const isStu = /^\d+$/.test(local) && ok;
+  const isTea = !/^\d+$/.test(local) && ok && local.length > 0;
+  const prev = document.getElementById('role-preview');
+  if (isStu) { prev.style.display='block'; prev.innerHTML='👨‍🎓 <strong>학생 계정</strong>으로 등록됩니다.'; }
+  else if (isTea) { prev.style.display='block'; prev.innerHTML='👨‍🏫 <strong>교사 계정</strong> — 등록 후 관리자 승인 필요'; }
+  else { prev.style.display='none'; }
+}
+
+// ── 인증 초기화 ──
+function resetVerify() {
+  _verified = false; _code = null;
+  clearInterval(_timer);
+  const elVerifyBox = document.getElementById('verify-box');
+  const elBadge     = document.getElementById('verified-badge');
+  const elGoS2      = document.getElementById('btn-go-s2');
+  const elVcode     = document.getElementById('vcode');
+  const elTimer     = document.getElementById('vtimer');
+  const elDemoNote  = document.getElementById('demo-note');
+  if (elVerifyBox) elVerifyBox.style.display = 'none';
+  if (elBadge)     elBadge.classList.remove('show');
+  if (elGoS2)      elGoS2.style.display = 'none';
+  if (elVcode)     elVcode.value = '';
+  if (elTimer)     elTimer.textContent = '';
+  if (elDemoNote)  elDemoNote.style.display = 'none';
+}
+
+// ── 인증번호 발송 ──
+async function sendVerifyCode(isResend = false) {
+  const name  = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const msgEl = document.getElementById('msg-s1');
+  const btn   = document.getElementById('btn-send');
+
+  if (!name)  return showMsg(msgEl, '이름을 먼저 입력하세요.', 'error');
+  if (!email) return showMsg(msgEl, '이메일을 입력하세요.', 'error');
+  if (!email.endsWith('@' + ALLOWED_DOMAIN))
+    return showMsg(msgEl, `@${ALLOWED_DOMAIN} 이메일만 가입 가능합니다.`, 'error');
+
+  const code = String(Math.floor(100000 + Math.random() * 900000));
+  _code = code; _codeEmail = email; _verified = false;
+
+  btn.disabled = true; btn.textContent = '발송 중...';
+
+  try {
+    const key    = btoa(email).replace(/[+/=]/g, c => ({'+':`-`,'/':'_','=':''}[c]));
+    const expiry = Date.now() + 5 * 60 * 1000;
+    await db.ref('verify_codes/' + key).set({ code, expiry, email, name });
+
+    document.getElementById('verify-box').style.display = 'block';
+    document.getElementById('verify-sent-msg').innerHTML =
+      `<strong>${email}</strong>으로 6자리 인증번호를 발송했습니다.<br>` +
+      `이메일함(스팸함 포함)을 확인해 주세요.`;
+
+ // 실제 이메일 발송
+    // Tracking Prevention 우회: 전송 직전 init 재호출
+    emailjs.init("Ezt3dzfWaP8CkhhdZ");
+    await emailjs.send(
+      "service_52ofr8w",
+      "template_u3ts08q",
+      {
+        to_email: email,
+        code: code,
+        reply_to: email
+      }
+    );
+
+console.log(`인증메일 발송 완료: ${email}`);
+
+    // 타이머 5분
+    clearInterval(_timer);
+    _secs = 300; updateTimer();
+    _timer = setInterval(() => {
+      _secs--;
+      updateTimer();
+      if (_secs <= 0) {
+        clearInterval(_timer);
+        document.getElementById('vtimer').textContent = '⏰ 인증번호가 만료되었습니다. 재발송해 주세요.';
+        document.getElementById('vtimer').className = 'timer expired';
+        _code = null;
+      }
+    }, 1000);
+
+    btn.textContent = '재발송';
+    btn.disabled = false;
+  } catch(e) {
+    showMsg(msgEl, '오류: ' + e.message, 'error');
+    btn.textContent = '인증번호 발송';
+    btn.disabled = false;
+  }
+}
+
+function updateTimer() {
+  const m = Math.floor(_secs / 60), s = _secs % 60;
+  const el = document.getElementById('vtimer');
+  el.textContent = `남은 시간: ${m}:${String(s).padStart(2,'0')}`;
+  el.className = 'timer' + (_secs <= 60 ? ' expired' : '');
+}
+
+// ── 인증번호 확인 ──
+async function checkCode() {
+  const input = document.getElementById('vcode').value.trim();
+  const msgEl = document.getElementById('msg-s1');
+  if (!input) return showMsg(msgEl, '인증번호를 입력하세요.', 'error');
+  if (!_code) return showMsg(msgEl, '인증번호를 먼저 발송해 주세요.', 'error');
+  try {
+    const key  = btoa(_codeEmail).replace(/[+/=]/g, c => ({'+':`-`,'/':'_','=':''}[c]));
+    const snap = await db.ref('verify_codes/' + key).once('value');
+    const data = snap.val();
+    if (!data)                   return showMsg(msgEl, '인증 정보가 없습니다. 재발송해 주세요.', 'error');
+    if (Date.now() > data.expiry) return showMsg(msgEl, '인증번호가 만료되었습니다.', 'error');
+    if (data.code !== input)     return showMsg(msgEl, '인증번호가 올바르지 않습니다.', 'error');
+
+    // 완료 처리 (null 체크 포함)
+    _verified = true;
+    clearInterval(_timer);
+    const elVerifyBox  = document.getElementById('verify-box');
+    const elDemoNote   = document.getElementById('demo-note');
+    const elTimer      = document.getElementById('vtimer');
+    const elBadge      = document.getElementById('verified-badge');
+    const elGoS2       = document.getElementById('btn-go-s2');
+    if (elVerifyBox) elVerifyBox.style.display = 'none';
+    if (elDemoNote)  elDemoNote.style.display  = 'none';
+    if (elTimer)     elTimer.textContent = '';
+    if (elBadge)     elBadge.classList.add('show');
+    if (elGoS2)      elGoS2.style.display = 'block';
+    msgEl.classList.remove('show');
+    await db.ref('verify_codes/' + key).remove();
+
+    markStepDone(1); markStepActive(2);
+  } catch(e) {
+    showMsg(msgEl, '오류: ' + e.message, 'error');
+  }
+}
+
+// ── STEP 이동 ──
+function goStep2() {
+  if (!_verified) return showMsg(document.getElementById('msg-s1'), '이메일 인증을 완료해 주세요.', 'error');
+  document.getElementById('su-step1').style.display = 'none';
+  document.getElementById('su-step2').style.display = 'block';
+  const local = document.getElementById('su-email').value.trim().split('@')[0];
+  document.getElementById('student-extra').style.display = /^\d+$/.test(local) ? 'block' : 'none';
+}
+function backStep() {
+  document.getElementById('su-step2').style.display = 'none';
+  document.getElementById('su-step1').style.display = 'block';
+}
+
+// ── 단계 스타일 ──
+function markStepDone(n)   { const el=document.getElementById('step'+n); el.className='step done'; document.getElementById('sn'+n).textContent='✓'; }
+function markStepActive(n) { document.getElementById('step'+n).className='step active'; }
+
+// ── 회원가입 완료 ──
+async function doSignup() {
+  const name  = document.getElementById('su-name').value.trim();
+  const email = document.getElementById('su-email').value.trim();
+  const pw    = document.getElementById('su-pw').value;
+  const pw2   = document.getElementById('su-pw2').value;
+  const msgEl = document.getElementById('msg-s2');
+  if (!_verified) return showMsg(msgEl, '이메일 인증을 완료해 주세요.', 'error');
+  if (!name)      return showMsg(msgEl, '이름을 입력하세요.', 'error');
+  if (pw.length < 6) return showMsg(msgEl, '비밀번호는 6자 이상이어야 합니다.', 'error');
+  if (pw !== pw2) return showMsg(msgEl, '비밀번호가 일치하지 않습니다.', 'error');
+  const btn = document.getElementById('btn-signup');
+  btn.innerHTML = '<span class="spinner"></span> 처리 중...'; btn.disabled = true;
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pw);
+    await cred.user.updateProfile({ displayName: name });
+    const local = email.split('@')[0], isStu = /^\d+$/.test(local);
+    await db.ref('users/' + cred.user.uid).set({
+      uid: cred.user.uid, name, email,
+      role: isStu ? 'student' : 'pending',
+      grade:  isStu ? parseInt(document.getElementById('su-grade').value)||1 : null,
+      class:  isStu ? parseInt(document.getElementById('su-class').value)||null : null,
+      number: isStu ? parseInt(document.getElementById('su-num').value)||null : null,
+      dept:   isStu ? document.getElementById('su-dept').value : null,
+      joinedAt: new Date().toISOString(),
+      last_promotion_year: new Date().getFullYear(),
+      emailVerified: true
+    });
+    markStepDone(2); markStepDone(3);
+    showMsg(msgEl, '✅ 가입 완료! 잠시 후 자동으로 이동합니다...', 'success');
+  } catch(e) {
+    const m = {
+      'auth/email-already-in-use':'이미 등록된 이메일입니다.',
+      'auth/invalid-email':'이메일 형식이 올바르지 않습니다.',
+      'auth/weak-password':'비밀번호가 너무 약합니다.'
+    };
+    showMsg(msgEl, m[e.code]||e.message, 'error');
+    btn.innerHTML = '회원가입 완료'; btn.disabled = false;
+  }
+}
+
+// ── 이메일 로그인 ──
+async function doEmailLogin() {
+  const email = document.getElementById('li-email').value.trim();
+  const pw    = document.getElementById('li-pw').value;
+  const msgEl = document.getElementById('li-msg');
+  if (!email||!pw) return showMsg(msgEl,'이메일과 비밀번호를 입력하세요.','error');
+  const btn = document.getElementById('btn-login');
+  btn.innerHTML = '<span class="spinner"></span> 로그인 중...'; btn.disabled = true;
+  try { await auth.signInWithEmailAndPassword(email, pw); }
+  catch(e) {
+    const m = {
+      'auth/user-not-found':'가입되지 않은 계정입니다.',
+      'auth/wrong-password':'비밀번호가 올바르지 않습니다.',
+      'auth/invalid-credential':'이메일 또는 비밀번호가 올바르지 않습니다.',
+      'auth/too-many-requests':'잠시 후 다시 시도해주세요.'
+    };
+    showMsg(msgEl, m[e.code]||e.message, 'error');
+    btn.innerHTML = '로그인'; btn.disabled = false;
+  }
+}
+
+// ── 비밀번호 재설정 ──
+async function sendResetEmail() {
+  const email = document.getElementById('rst-email').value.trim();
+  const msgEl = document.getElementById('rst-msg');
+  const btn   = document.getElementById('btn-reset');
+
+  if (!email) return showMsg(msgEl, '이메일을 입력하세요.', 'error');
+  if (!email.endsWith('@' + ALLOWED_DOMAIN))
+    return showMsg(msgEl, `@${ALLOWED_DOMAIN} 이메일만 가능합니다.`, 'error');
+
+  btn.innerHTML = '<span class="spinner"></span> 발송 중...'; btn.disabled = true;
+  try {
+    await auth.sendPasswordResetEmail(email, {
+      url: window.location.href  // 재설정 후 돌아올 URL
+    });
+    // 성공: STEP B로 전환
+    document.getElementById('rst-step-a').style.display = 'none';
+    document.getElementById('rst-step-b').style.display = 'block';
+    document.getElementById('rst-sent-email').textContent = email;
+  } catch(e) {
+    const m = {
+      'auth/user-not-found'  : '가입되지 않은 이메일입니다.',
+      'auth/invalid-email'   : '이메일 형식이 올바르지 않습니다.',
+      'auth/too-many-requests': '요청이 너무 많습니다. 잠시 후 다시 시도하세요.'
+    };
+    showMsg(msgEl, m[e.code] || e.message, 'error');
+  } finally {
+    btn.innerHTML = '재설정 메일 발송'; btn.disabled = false;
+  }
+}
+
+function resetBackToA() {
+  document.getElementById('rst-step-a').style.display = 'block';
+  document.getElementById('rst-step-b').style.display = 'none';
+  document.getElementById('rst-msg').classList.remove('show');
+  document.getElementById('rst-email').value = '';
+}
+
+function doLogout() { auth.signOut(); }
+
+// ── Auth 상태 → 라우팅 ──
+auth.onAuthStateChanged(async user => {
+  if (!user) { document.getElementById('btn-login').innerHTML='로그인'; document.getElementById('btn-login').disabled=false; return; }
+  const email = user.email||'';
+  if (!email.endsWith('@'+ALLOWED_DOMAIN)) {
+    await auth.signOut();
+    showMsg(document.getElementById('li-msg'),`@${ALLOWED_DOMAIN} 계정만 가능합니다.`,'error'); return;
+  }
+  const userRef = db.ref('users/'+user.uid);
+  const snap = await userRef.once('value');
+  let ud = snap.val();
+  if (!ud) {
+    const local = email.split('@')[0], isStu = /^\d+$/.test(local);
+    ud = { uid:user.uid, name:user.displayName||local, email, role:isStu?'student':'pending',
+           grade:isStu?1:null, class:null, number:null, dept:null,
+           joinedAt:new Date().toISOString(), last_promotion_year:new Date().getFullYear() };
+    await userRef.set(ud);
+  } else {
+    await userRef.update({ name:user.displayName||ud.name });
+    ud = (await userRef.once('value')).val();
+  }
+  if (ud.role==='pending') {
+    document.getElementById('pending-box').style.display='block';
+    document.getElementById('btn-login').innerHTML='로그인'; document.getElementById('btn-login').disabled=false; return;
+  }
+  if (ud.role==='student') {
+    const now=new Date(), y=now.getFullYear();
+    if (now.getMonth()>=2 && (ud.last_promotion_year||0)<y) {
+      if (ud.grade>=3) { await userRef.update({grade:'graduated',last_promotion_year:y}); }
+      else { document.getElementById('pm-grade').value=String(Math.min((ud.grade||1)+1,3)); document.getElementById('promotion-modal').classList.add('open'); return; }
+    }
+  }
+  if (['master','employment_teacher','general_teacher'].includes(ud.role)) window.location.href='admin.html';
+  else if (ud.role==='student') window.location.href='student.html';
+});
+
+// ── 진급 저장 ──
+async function savePromotion() {
+  const grade=parseInt(document.getElementById('pm-grade').value);
+  const cls=parseInt(document.getElementById('pm-class').value);
+  const num=parseInt(document.getElementById('pm-number').value);
+  const dept=document.getElementById('pm-dept').value;
+  if (!cls||!num){alert('반과 번호를 입력해 주세요.');return;}
+  const user=auth.currentUser; if(!user)return;
+  await db.ref('users/'+user.uid).update({grade,class:cls,number:num,dept,last_promotion_year:new Date().getFullYear()});
+  document.getElementById('promotion-modal').classList.remove('open');
+  window.location.href='student.html';
+}
+
+// ── 유틸 ──
+function showMsg(el,msg,type){
+  el.innerHTML=msg; el.className='msg-box '+type+' show';
+  if(type==='error') setTimeout(()=>el.classList.remove('show'),5000);
+}
+</script>
+</body>
+</html>
