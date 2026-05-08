@@ -8,7 +8,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
-<script src="https://unpkg.com/@emailjs/browser@4/dist/email.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="firebase-config.js"></script>
 <style>
   :root{--bg:#060a10;--surface:#0d1420;--surface2:#111c2e;--border:#1e2d45;--border2:#243550;--accent:#1d6de5;--accent2:#3b82f6;--accent-glow:rgba(29,109,229,.18);--text:#e2eaf6;--text2:#7a92b4;--text3:#3d5270;--green:#4ade80;--green-bg:rgba(74,222,128,.1);--red:#f87171;--red-bg:rgba(248,113,113,.08);--yellow:#fbbf24;--yellow-bg:rgba(251,191,36,.06);--mono:'IBM Plex Mono',monospace;--sans:'Noto Sans KR',sans-serif;}
@@ -220,9 +220,7 @@
           </div>
           <div class="form-group"><label class="form-label">학과</label>
             <select class="form-input" id="su-dept">
-              <option>기계과</option><option>기계설계과</option><option>자동화기계과</option>
-              <option>메카트로닉스과</option><option>전기과</option><option>자동차과</option>
-              <option>금속재료과</option><option>냉동공조과</option><option>기타</option>
+              <option>기계시스템과</option><option>설비시스템과</option><option>스마트팩토리과(로봇)</option><option>스마트팩토리과(메카)</option><option>전기과</option>
             </select></div>
         </div>
 
@@ -297,9 +295,7 @@
     </div>
     <div class="form-group"><label class="form-label">학과</label>
       <select class="form-input" id="pm-dept">
-        <option>기계과</option><option>기계설계과</option><option>자동화기계과</option>
-        <option>메카트로닉스과</option><option>전기과</option><option>자동차과</option>
-        <option>금속재료과</option><option>냉동공조과</option><option>기타</option>
+        <option>기계시스템과</option><option>설비시스템과</option><option>스마트팩토리과(로봇)</option><option>스마트팩토리과(메카)</option><option>전기과</option>
       </select></div>
     <button class="btn-confirm" onclick="savePromotion()">확인 — 저장하고 시작하기</button>
   </div>
@@ -309,6 +305,7 @@
 firebase.initializeApp(FIREBASE_CONFIG);
 const auth = firebase.auth();
 const db   = firebase.database();
+emailjs.init("Ezt3dzfWaP8CkhhdZ");
 document.getElementById('school-sub').textContent = SCHOOL_NAME;
 
 // ── 상태 ──
@@ -344,18 +341,12 @@ function detectRole() {
 function resetVerify() {
   _verified = false; _code = null;
   clearInterval(_timer);
-  const elVerifyBox = document.getElementById('verify-box');
-  const elBadge     = document.getElementById('verified-badge');
-  const elGoS2      = document.getElementById('btn-go-s2');
-  const elVcode     = document.getElementById('vcode');
-  const elTimer     = document.getElementById('vtimer');
-  const elDemoNote  = document.getElementById('demo-note');
-  if (elVerifyBox) elVerifyBox.style.display = 'none';
-  if (elBadge)     elBadge.classList.remove('show');
-  if (elGoS2)      elGoS2.style.display = 'none';
-  if (elVcode)     elVcode.value = '';
-  if (elTimer)     elTimer.textContent = '';
-  if (elDemoNote)  elDemoNote.style.display = 'none';
+  document.getElementById('verify-box').style.display = 'none';
+  document.getElementById('verified-badge').classList.remove('show');
+  document.getElementById('btn-go-s2').style.display = 'none';
+  document.getElementById('vcode').value = '';
+  document.getElementById('vtimer').textContent = '';
+  document.getElementById('demo-note').style.display = 'none';
 }
 
 // ── 인증번호 발송 ──
@@ -369,6 +360,25 @@ async function sendVerifyCode(isResend = false) {
   if (!email) return showMsg(msgEl, '이메일을 입력하세요.', 'error');
   if (!email.endsWith('@' + ALLOWED_DOMAIN))
     return showMsg(msgEl, `@${ALLOWED_DOMAIN} 이메일만 가입 가능합니다.`, 'error');
+
+  // ── 이메일 중복 확인 (재발송 시에는 건너뜀) ──
+  if (!isResend) {
+    btn.disabled = true; btn.textContent = '확인 중...';
+    try {
+      const methods = await auth.fetchSignInMethodsForEmail(email);
+      if (methods && methods.length > 0) {
+        showMsg(msgEl, '이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용해 주세요.', 'error');
+        btn.disabled = false; btn.textContent = '인증번호 발송';
+        return; // 중복이면 여기서 완전 중단
+      }
+    } catch(e) {
+      console.warn('중복 체크 오류:', e.message);
+      // 오류 시에도 일단 중단 (안전하게)
+      showMsg(msgEl, '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 'error');
+      btn.disabled = false; btn.textContent = '인증번호 발송';
+      return;
+    }
+  }
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   _code = code; _codeEmail = email; _verified = false;
@@ -385,7 +395,6 @@ async function sendVerifyCode(isResend = false) {
       `<strong>${email}</strong>으로 6자리 인증번호를 발송했습니다.<br>` +
       `이메일함(스팸함 포함)을 확인해 주세요.`;
 
- // 실제 이메일 발송
     // Tracking Prevention 우회: 전송 직전 init 재호출
     emailjs.init("Ezt3dzfWaP8CkhhdZ");
     await emailjs.send(
@@ -398,7 +407,7 @@ async function sendVerifyCode(isResend = false) {
       }
     );
 
-console.log(`인증메일 발송 완료: ${email}`);
+    console.log(`인증메일 발송 완료: ${email}`);
 
     // 타이머 5분
     clearInterval(_timer);
@@ -408,8 +417,8 @@ console.log(`인증메일 발송 완료: ${email}`);
       updateTimer();
       if (_secs <= 0) {
         clearInterval(_timer);
-        document.getElementById('vtimer').textContent = '⏰ 인증번호가 만료되었습니다. 재발송해 주세요.';
-        document.getElementById('vtimer').className = 'timer expired';
+        const elTimer = document.getElementById('vtimer');
+        if (elTimer) { elTimer.textContent = '⏰ 인증번호가 만료되었습니다. 재발송해 주세요.'; elTimer.className = 'timer expired'; }
         _code = null;
       }
     }, 1000);
@@ -440,26 +449,22 @@ async function checkCode() {
     const key  = btoa(_codeEmail).replace(/[+/=]/g, c => ({'+':`-`,'/':'_','=':''}[c]));
     const snap = await db.ref('verify_codes/' + key).once('value');
     const data = snap.val();
-    if (!data)                   return showMsg(msgEl, '인증 정보가 없습니다. 재발송해 주세요.', 'error');
+    if (!data)                  return showMsg(msgEl, '인증 정보가 없습니다. 재발송해 주세요.', 'error');
     if (Date.now() > data.expiry) return showMsg(msgEl, '인증번호가 만료되었습니다.', 'error');
-    if (data.code !== input)     return showMsg(msgEl, '인증번호가 올바르지 않습니다.', 'error');
+    if (data.code !== input)    return showMsg(msgEl, '인증번호가 올바르지 않습니다.', 'error');
 
-    // 완료 처리 (null 체크 포함)
+    // 완료
     _verified = true;
     clearInterval(_timer);
-    const elVerifyBox  = document.getElementById('verify-box');
-    const elDemoNote   = document.getElementById('demo-note');
-    const elTimer      = document.getElementById('vtimer');
-    const elBadge      = document.getElementById('verified-badge');
-    const elGoS2       = document.getElementById('btn-go-s2');
-    if (elVerifyBox) elVerifyBox.style.display = 'none';
-    if (elDemoNote)  elDemoNote.style.display  = 'none';
-    if (elTimer)     elTimer.textContent = '';
-    if (elBadge)     elBadge.classList.add('show');
-    if (elGoS2)      elGoS2.style.display = 'block';
+    document.getElementById('verify-box').style.display = 'none';
+    document.getElementById('demo-note').style.display  = 'none';
+    document.getElementById('vtimer').textContent = '';
+    document.getElementById('verified-badge').classList.add('show');
+    document.getElementById('btn-go-s2').style.display = 'block';
     msgEl.classList.remove('show');
     await db.ref('verify_codes/' + key).remove();
 
+    // 단계 업데이트
     markStepDone(1); markStepActive(2);
   } catch(e) {
     showMsg(msgEl, '오류: ' + e.message, 'error');
