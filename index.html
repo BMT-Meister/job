@@ -360,22 +360,47 @@ async function sendVerifyCode(isResend = false) {
   if (!email.endsWith('@' + ALLOWED_DOMAIN))
     return showMsg(msgEl, `@${ALLOWED_DOMAIN} 이메일만 가입 가능합니다.`, 'error');
 
-  // ── 이메일 중복 확인 (재발송 시에는 건너뜀) ──
-  if (!isResend) {
-    btn.disabled = true; btn.textContent = '확인 중...';
-    try {
-      const methods = await auth.fetchSignInMethodsForEmail(email);
-      if (methods && methods.length > 0) {
-        showMsg(msgEl, '이미 가입된 이메일입니다.<br>로그인하거나 비밀번호 찾기를 이용해 주세요.', 'error');
-        btn.disabled = false; btn.textContent = '인증번호 발송';
-        return;
-      }
-    } catch(e) {
-      showMsg(msgEl, '이메일 확인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 'error');
-      btn.disabled = false; btn.textContent = '인증번호 발송';
+// ── 이메일 중복 확인 (재발송 시에는 건너뜀) ──
+if (!isResend) {
+  btn.disabled = true;
+  btn.textContent = '확인 중...';
+  try {
+    // Firebase Auth 기준 이메일 중복 검사
+    const methods =
+      await firebase.auth()
+        .fetchSignInMethodsForEmail(email);
+    // 이미 가입된 이메일
+    if (methods.length > 0) {
+      showMsg(
+        msgEl,
+        '이미 가입된 이메일입니다.<br>로그인하거나 비밀번호 찾기를 이용해 주세요.',
+        'error'
+      );
+      btn.disabled = false;
+      btn.textContent = '인증번호 발송';
       return;
     }
+
+  } catch(e) {
+
+    console.error(e);
+
+    showMsg(
+      msgEl,
+      '이메일 확인 중 오류가 발생했습니다.',
+      'error'
+    );
+
+    btn.disabled = false;
+    btn.textContent = '인증번호 발송';
+
+    return;
   }
+}
+```
+
+
+
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
   _code = code; _codeEmail = email; _verified = false;
@@ -392,7 +417,7 @@ async function sendVerifyCode(isResend = false) {
       `<strong>${email}</strong>으로 6자리 인증번호를 발송했습니다.<br>` +
       `이메일함(스팸함 포함)을 확인해 주세요.`;
 
- // 실제 이메일 발송 (Tracking Prevention 우회: init 재호출)
+ // 실제 이메일 발송 (Tracking Prevention 우회)
     emailjs.init("Ezt3dzfWaP8CkhhdZ");
     await emailjs.send(
       "service_52ofr8w",
