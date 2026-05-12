@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "bmt-meister-job"
+  },
+  "targets": {
+    "bmt-meister-job": {
+      "hosting": {
+        "default": [
+          "bmt-meister-job"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

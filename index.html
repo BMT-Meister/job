@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script src="https://unpkg.com/@emailjs/browser@4/dist/email.min.js"></script>
 <script src="firebase-config.js"></script>
+<link rel="stylesheet" href="css/responsive.css">
 <style>
   :root{--bg:#060a10;--surface:#0d1420;--surface2:#111c2e;--border:#1e2d45;--border2:#243550;--accent:#1d6de5;--accent2:#3b82f6;--accent-glow:rgba(29,109,229,.18);--text:#e2eaf6;--text2:#7a92b4;--text3:#3d5270;--green:#4ade80;--green-bg:rgba(74,222,128,.1);--red:#f87171;--red-bg:rgba(248,113,113,.08);--yellow:#fbbf24;--yellow-bg:rgba(251,191,36,.06);--mono:'IBM Plex Mono',monospace;--sans:'Noto Sans KR',sans-serif;}
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -220,7 +221,7 @@
           </div>
           <div class="form-group"><label class="form-label">학과</label>
             <select class="form-input" id="su-dept">
-              <option>기계시스템과</option><option>설비시스템과</option><option>스마트팩토리과(로봇)</option><option>스마트팩토리과(메카)</option><option>전기과</option>
+              <!-- DEPT_LIST 상수로 동적 생성 (firebase-config.js) -->
             </select></div>
         </div>
 
@@ -271,7 +272,7 @@
     </div><!-- /panel-reset -->
 
     <!-- 승인 대기 -->
-    <div class="msg-box pending" id="pending-box" style="margin-top:14px;">
+    <div class="msg-box pending" id="pending-box" style="margin-top:14px;display:none;">
       ⏳ <strong>승인 대기 중</strong>입니다.<br>관리자가 역할을 부여하면 이용할 수 있습니다.<br>
       <button class="btn-text" onclick="doLogout()">다른 계정으로 로그인</button>
     </div>
@@ -295,7 +296,7 @@
     </div>
     <div class="form-group"><label class="form-label">학과</label>
       <select class="form-input" id="pm-dept">
-        <option>기계시스템과</option><option>설비시스템과</option><option>스마트팩토리과(로봇)</option><option>스마트팩토리과(메카)</option><option>전기과</option>
+        <!-- DEPT_LIST 상수로 동적 생성 -->
       </select></div>
     <button class="btn-confirm" onclick="savePromotion()">확인 — 저장하고 시작하기</button>
   </div>
@@ -307,8 +308,17 @@ const auth = firebase.auth();
 const db   = firebase.database();
 document.getElementById('school-sub').textContent = SCHOOL_NAME;
 
+// ── DEPT_LIST로 학과 드롭다운 자동 채움 ──
+(function() {
+  const opts = (typeof DEPT_LIST !== 'undefined' ? DEPT_LIST : []).map(d=>`<option>${d}</option>`).join('');
+  ['su-dept','pm-dept'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.innerHTML = opts;
+  });
+})();
+
 // ── 상태 ──
 let _code = null, _codeEmail = null, _timer = null, _secs = 0, _verified = false;
+let _signingUp = false;
 
 // ── 탭 전환 ──
 function switchTab(tab) {
@@ -360,46 +370,25 @@ async function sendVerifyCode(isResend = false) {
   if (!email.endsWith('@' + ALLOWED_DOMAIN))
     return showMsg(msgEl, `@${ALLOWED_DOMAIN} 이메일만 가입 가능합니다.`, 'error');
 
-// ── 이메일 중복 확인 (재발송 시에는 건너뜀) ──
-if (!isResend) {
-  btn.disabled = true;
-  btn.textContent = '확인 중...';
-  try {
-    // Firebase Auth 기준 이메일 중복 검사
-    const methods =
-      await firebase.auth()
-        .fetchSignInMethodsForEmail(email);
-    // 이미 가입된 이메일
-    if (methods.length > 0) {
-      showMsg(
-        msgEl,
-        '이미 가입된 이메일입니다.<br>로그인하거나 비밀번호 찾기를 이용해 주세요.',
-        'error'
-      );
-      btn.disabled = false;
-      btn.textContent = '인증번호 발송';
+  // ── 이메일 중복 확인 (재발송 시에는 건너뜀) ──
+  if (!isResend) {
+    btn.disabled = true; btn.textContent = '확인 중...';
+    try {
+      // Firebase Auth 기준 이메일 중복 검사
+      const methods = await firebase.auth().fetchSignInMethodsForEmail(email);
+      // 이미 가입된 이메일
+      if (methods.length > 0) {
+        showMsg(msgEl, '이미 가입된 이메일입니다.<br>로그인하거나 비밀번호 찾기를 이용해 주세요.', 'error');
+        btn.disabled = false; btn.textContent = '인증번호 발송';
+        return;
+      }
+    } catch(e) {
+      console.error(e);
+      showMsg(msgEl, '이메일 확인 중 오류가 발생했습니다.', 'error');
+      btn.disabled = false; btn.textContent = '인증번호 발송';
       return;
     }
-
-  } catch(e) {
-
-    console.error(e);
-
-    showMsg(
-      msgEl,
-      '이메일 확인 중 오류가 발생했습니다.',
-      'error'
-    );
-
-    btn.disabled = false;
-    btn.textContent = '인증번호 발송';
-
-    return;
   }
-}
-```
-
-
 
 
   const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -524,8 +513,8 @@ async function doSignup() {
   const btn = document.getElementById('btn-signup');
   btn.innerHTML = '<span class="spinner"></span> 처리 중...'; btn.disabled = true;
   try {
+    _signingUp = true;
     const cred = await auth.createUserWithEmailAndPassword(email, pw);
-    await cred.user.updateProfile({ displayName: name });
     const local = email.split('@')[0], isStu = /^\d+$/.test(local);
     await db.ref('users/' + cred.user.uid).set({
       uid: cred.user.uid, name, email,
@@ -538,9 +527,12 @@ async function doSignup() {
       last_promotion_year: new Date().getFullYear(),
       emailVerified: true
     });
+    await cred.user.updateProfile({ displayName: name });
+    _signingUp = false;
     markStepDone(2); markStepDone(3);
     showMsg(msgEl, '✅ 가입 완료! 잠시 후 자동으로 이동합니다...', 'success');
   } catch(e) {
+    _signingUp = false;
     const m = {
       'auth/email-already-in-use':'이미 등록된 이메일입니다.',
       'auth/invalid-email':'이메일 형식이 올바르지 않습니다.',
@@ -614,6 +606,7 @@ function doLogout() { auth.signOut(); }
 
 // ── Auth 상태 → 라우팅 ──
 auth.onAuthStateChanged(async user => {
+  if (_signingUp) return;
   if (!user) { document.getElementById('btn-login').innerHTML='로그인'; document.getElementById('btn-login').disabled=false; return; }
   const email = user.email||'';
   if (!email.endsWith('@'+ALLOWED_DOMAIN)) {

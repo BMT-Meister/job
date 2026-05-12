@@ -1,0 +1,132 @@
+/* ================================================================
+   common.css
+   공통 컴포넌트 + 모바일 반응형
+   admin.html / student.html 양쪽 <head>에 추가:
+   <link rel="stylesheet" href="css/common.css">
+================================================================ */
+
+/* ── 테이블 모바일 스크롤 ── */
+.table-scroll-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.table-scroll-wrap table { min-width: 600px; }
+
+/* ── 모달 반응형 ── */
+.modal {
+  max-height: 90dvh;       /* dvh: 주소창 제외한 실제 뷰포트 */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 600px) {
+  .modal { width: 96vw !important; border-radius: 12px; }
+}
+
+/* ── 디테일 패널 모바일 ── */
+@media (max-width: 768px) {
+  .detail-panel { width: 100vw !important; }
+}
+
+/* ── 버튼 최소 터치 영역 44px ── */
+.btn, button, [role="button"] { min-height: 36px; }
+@media (max-width: 768px) {
+  .btn, button, [role="button"] { min-height: 44px; }
+  .btn-sm { min-height: 36px; padding: 6px 12px; font-size: 12px; }
+}
+
+/* ── overflow 방지 ── */
+.main, .page { overflow-x: hidden; }
+img, video { max-width: 100%; height: auto; }
+
+/* ── toast 모바일 ── */
+#toast-wrap {
+  bottom: 16px; right: 16px; left: 16px;
+  max-width: 420px; margin-left: auto;
+}
+@media (min-width: 480px) {
+  #toast-wrap { left: auto; }
+}
+
+/* ── 공통 post-img ── */
+.post-img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 10px;
+  display: block;
+  cursor: pointer;
+  max-height: 320px;
+  object-fit: contain;
+}
+
+/* ── chip (기업 태그) ── */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  background: rgba(37,99,235,.1);
+  color: var(--accent2, #3b82f6);
+  border: 1px solid rgba(37,99,235,.2);
+  white-space: nowrap;
+}
+.chip-wrap { display: flex; flex-wrap: wrap; gap: 3px; }
+
+/* ── 프로필 아바타 폴백 ── */
+.profile-avatar-fallback {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent, #2563eb), #7c3aed);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; color: #fff;
+  border: 2px solid rgba(255,255,255,.1);
+}
+
+/* ── 공통 empty-state ── */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text2, #8b949e); }
+.empty-icon  { font-size: 30px; margin-bottom: 8px; opacity: .4; display: block; }
+.empty-text  { font-size: 13px; font-weight: 500; }
+.empty-sub   { font-size: 12px; opacity: .6; margin-top: 4px; }
+
+/* ── 게시판 공통 ── */
+.post-list    { display: flex; flex-direction: column; }
+.post-row     {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(48,54,61,.5);
+  cursor: pointer; transition: background .1s;
+}
+.post-row:hover { background: rgba(255,255,255,.025); }
+.post-num       { min-width: 30px; font-family: monospace; font-size: 11px; color: var(--text3,#6e7681); text-align: center; flex-shrink: 0; }
+.post-title     { flex: 1; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.post-title-cell{ flex: 1; font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.post-meta      { font-size: 11px; color: var(--text3,#6e7681); white-space: nowrap; }
+.post-meta-cell { font-size: 11px; color: var(--text3,#6e7681); white-space: nowrap; }
+.reply-cnt, .rc { color: var(--accent2,#3b82f6); font-size: 11px; margin-left: 4px; }
+.secret-badge   { font-size: 10px; padding: 1px 5px; background: rgba(251,191,36,.1); border: 1px solid rgba(251,191,36,.3); border-radius: 4px; color: #fbbf24; }
+
+/* ── 댓글 공통 ── */
+.comment-item {
+  background: var(--surface2, #21262d);
+  border: 1px solid var(--border, #30363d);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+.comment-item.comment-admin { border-color: rgba(37,99,235,.3); background: rgba(37,99,235,.05); }
+.comment-author { font-weight: 600; font-size: 12px; margin-bottom: 4px; }
+.comment-body   { font-size: 13px; line-height: 1.6; word-break: break-word; }
+
+/* ── 스크롤바 공통 ── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface3,#30363d); border-radius: 3px; }
+
+/* ── 반응형 네비 탭 ── */
+.nav-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+.nav-tabs::-webkit-scrollbar { display: none; }
+
+/* ── 반응형 stats-row ── */
+@media (max-width: 480px) {
+  .stats-row { grid-template-columns: 1fr 1fr !important; }
+}
